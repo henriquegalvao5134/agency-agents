@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { askBrainAgent, routeBrainAgent, BRAIN_MODELS } from "@/lib/brain-ai.functions";
 import { agentIsWorking, isTaskActive, validateDelegation, type BrainTask } from "@/lib/brain-routing";
 import { TaskMonitor } from "./TaskMonitor";
+import { useAtividade } from "@/lib/cerebro/use-atividade";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { FX } from "./Panel";
@@ -57,7 +58,9 @@ export function GraphPanel() {
   // Many AIs can think at once: each agent has its own busy flag and answer, all reading the same AI core.
   const [tasks, setTasks] = useState<BrainTask[]>([]);
   const [delegate, setDelegate] = useState(true);
-  const busyMap = Object.fromEntries(agents.map(a => [a.id, agentIsWorking(tasks, a.id)]));
+  // Uma entrada de IA também acende quando essa ferramenta registrou atividade real no núcleo (Claude Code, etc.).
+  const ativosNoNucleo = useAtividade().data?.ativos ?? [];
+  const busyMap = Object.fromEntries(agents.map(a => [a.id, agentIsWorking(tasks, a.id) || ativosNoNucleo.includes(a.id)]));
   const activeTasks = tasks.filter(isTaskActive);
   const runningSkills = SKILLS.filter(s => activeTasks.some(t => t.phase === "running" && t.skillId === s.id));
   const [answers, setAnswers] = useState<Record<string, { ok: boolean; text: string }>>({});

@@ -3,6 +3,14 @@ import "./lib/error-capture";
 import { consumeLastCapturedError, logError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { handleLiveRequest } from "./lib/live-relay.server";
+import { handleMcpRequest } from "./lib/cerebro/mcp.server";
+import { handleCerebroHttp } from "./lib/cerebro/http.server";
+import { cerebroEnv, supabaseStore } from "./lib/cerebro/store.server";
+
+function nucleo() {
+  const env = cerebroEnv();
+  return { store: env ? supabaseStore(env) : null, token: env?.token ?? null };
+}
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -51,7 +59,10 @@ function isH3SwallowedErrorBody(body: string): boolean {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
-      if (new URL(request.url).pathname === "/api/live") return handleLiveRequest(request);
+      const pathname = new URL(request.url).pathname;
+      if (pathname === "/api/live") return handleLiveRequest(request);
+      if (pathname === "/api/mcp" || pathname.startsWith("/api/mcp/")) { const n = nucleo(); return await handleMcpRequest(request, n.store, n.token); }
+      if (pathname.startsWith("/api/cerebro/")) { const n = nucleo(); return await handleCerebroHttp(request, n.store, n.token); }
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);

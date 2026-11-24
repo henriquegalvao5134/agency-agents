@@ -1,0 +1,18 @@
+{
+  "env": {
+    "CEREBRO_URL": "https://henriquegalvao5134-agency-agents-segundo-cerebro.leandrotecnico02.workers.dev",
+    "CEREBRO_TOKEN": "COLE_AQUI_O_TOKEN_DO_NUCLEO"
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "node \"C:/setap/agency-agents/segundo-cerebro/integracoes/claude-code/cerebro-statusline.mjs\""
+  },
+  "hooks": {
+    "SessionStart": [{ "hooks": [{ "type": "command", "command": "node \"C:/setap/agency-agents/segundo-cerebro/integracoes/claude-code/cerebro-hook.mjs\"" }] }],
+    "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "node \"C:/setap/agency-agents/segundo-cerebro/integracoes/claude-code/cerebro-hook.mjs\"" }] }],
+    "Stop": [{ "hooks": [{ "type": "command", "command": "node \"C:/setap/agency-agents/segundo-cerebro/integracoes/claude-code/cerebro-hook.mjs\"" }] }],
+    "SubagentStop": [{ "hooks": [{ "type": "command", "command": "node \"C:/setap/agency-agents/segundo-cerebro/integracoes/claude-code/cerebro-hook.mjs\"" }] }],
+    "PreCompact": [{ "hooks": [{ "type": "command", "command": "node \"C:/setap/agency-agents/segundo-cerebro/integracoes/claude-code/cerebro-hook.mjs\"" }] }],
+    "SessionEnd": [{ "hooks": [{ "type": "command", "command": "node \"C:/setap/agency-agents/segundo-cerebro/integracoes/claude-code/cerebro-hook.mjs\"" }] }]
+  }
+}
