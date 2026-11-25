@@ -12,11 +12,14 @@ export type DepartamentoId =
   | "estrategia"
   | "especialistas";
 
+/** Nomes da paleta fx (variáveis --fx-<cor>) usados para acender um departamento. */
+export type CorFx = "red" | "orange" | "yellow" | "green" | "cyan" | "blue" | "purple" | "magenta";
+
 export const DEPARTAMENTOS: {
   id: DepartamentoId;
   rotulo: string;
   divisoes: string[];
-  cor: string;
+  cor: CorFx;
 }[] = [
   { id: "marketing", rotulo: "Marketing", divisoes: ["marketing"], cor: "magenta" },
   { id: "midia", rotulo: "Mídia paga", divisoes: ["paid-media"], cor: "red" },
@@ -63,6 +66,17 @@ export function nomeAgente(agenteId: string): string {
     .join(" ");
 }
 
+/** Skills do FLUXO de desenvolvimento do orquestrador (orquestrador.server.ts), na mesma ordem. */
+export const FLUXO_DESENVOLVIMENTO = [
+  "brainstorming",
+  "writing-plans",
+  "subagent-driven-development",
+  "test-driven-development",
+  "requesting-code-review",
+  "finishing-a-development-branch",
+] as const;
+
+/** As 6 fichas superpowers são exatamente as do FLUXO_DESENVOLVIMENTO. */
 export type SkillTrabalho = { id: string; rotulo: string; grupo: "superpowers" | "gd3" };
 
 export const SKILLS_TRABALHO: SkillTrabalho[] = [
@@ -70,8 +84,8 @@ export const SKILLS_TRABALHO: SkillTrabalho[] = [
   { id: "writing-plans", rotulo: "Plano", grupo: "superpowers" },
   { id: "subagent-driven-development", rotulo: "Subagentes", grupo: "superpowers" },
   { id: "test-driven-development", rotulo: "TDD", grupo: "superpowers" },
-  { id: "systematic-debugging", rotulo: "Depuração", grupo: "superpowers" },
   { id: "requesting-code-review", rotulo: "Revisão de código", grupo: "superpowers" },
+  { id: "finishing-a-development-branch", rotulo: "Finalizar", grupo: "superpowers" },
   { id: "fluxo-marketing", rotulo: "Fluxo de marketing", grupo: "gd3" },
   { id: "salvar-no-cerebro", rotulo: "Salvar no cérebro", grupo: "gd3" },
 ];
@@ -80,7 +94,7 @@ export type EstadoAgencia = {
   departamentos: {
     id: DepartamentoId;
     rotulo: string;
-    cor: string;
+    cor: CorFx;
     total: number;
     aceso: boolean;
     agentes: string[];
@@ -92,7 +106,12 @@ export type EstadoAgencia = {
 const JANELA_ORQUESTRADOR_MS = 2 * 60_000;
 
 export function estadoAgencia(
-  atividade: Pick<Atividade, "delegacoes" | "salvouAgora"> | undefined,
+  atividade:
+    | {
+        delegacoes: (Omit<Atividade["delegacoes"][number], "nomes"> & { nomes?: string[] })[];
+        salvouAgora: boolean;
+      }
+    | undefined,
   divisoes: Record<string, number>,
   agora: Date = new Date(),
 ): EstadoAgencia {
@@ -103,13 +122,14 @@ export function estadoAgencia(
 
   const agentesPorDepto = new Map<DepartamentoId, string[]>();
   for (const deleg of delegacoes) {
-    for (const id of deleg.agentes) {
+    deleg.agentes.forEach((id, i) => {
       const depto = departamentoDe(id);
-      const nome = nomeAgente(id);
+      // O servidor grava o nome real do catálogo; eventos antigos sem nome caem no nome derivado do id.
+      const nome = deleg.nomes?.[i]?.trim() || nomeAgente(id);
       const lista = agentesPorDepto.get(depto) ?? [];
       if (!lista.includes(nome)) lista.push(nome);
       agentesPorDepto.set(depto, lista);
-    }
+    });
   }
 
   const departamentos = DEPARTAMENTOS.map((d) => {
@@ -127,18 +147,44 @@ export function estadoAgencia(
   const maisNova = delegacoes[0];
   const acesas = new Set<string>();
   if (maisNova?.area === "desenvolvimento") {
-    for (const s of SKILLS_TRABALHO) if (s.grupo === "superpowers") acesas.add(s.id);
+    // Só acende o que o orquestrador manda usar e que tem ficha (nada de depuração numa delegação comum).
+    for (const id of FLUXO_DESENVOLVIMENTO)
+      if (SKILLS_TRABALHO.some((s) => s.id === id)) acesas.add(id);
   }
   if (maisNova?.area === "marketing") acesas.add("fluxo-marketing");
   if (atividade?.salvouAgora) acesas.add("salvar-no-cerebro");
 
-  const orquestradorAtivo = maisNova
-    ? agora.getTime() - new Date(maisNova.criado_em).getTime() < JANELA_ORQUESTRADOR_MS
-    : false;
+  // Relógio do navegador atrás do servidor dá idade negativa: isso não conta como "delegando agora".
+  const idade = maisNova ? agora.getTime() - new Date(maisNova.criado_em).getTime() : NaN;
+  const orquestradorAtivo = idade >= 0 && idade < JANELA_ORQUESTRADOR_MS;
 
   return {
     departamentos,
     skillsAcesas: SKILLS_TRABALHO.filter((s) => acesas.has(s.id)).map((s) => s.id),
     orquestradorAtivo,
   };
+}
+
+const ROTULO_NOME_MAX = 24;
+
+/**
+ * Rótulo do núcleo, sempre verdadeiro: sem login não dá para saber quem orquestra; enquanto a sessão ou o cofre
+ * carregam mostra "…"; logado, mostra a IA orquestradora do cofre (ou que não há) e "delegando" se houve delegação
+ * nos últimos 2 min (o orquestrador também delega sem IA no cofre, pelas regras do catálogo).
+ */
+export function rotuloOrquestrador(p: {
+  carregando: boolean;
+  logado: boolean;
+  nome: string | undefined;
+  ativo: boolean;
+}): string {
+  if (p.carregando) return "ORQUESTRADOR · …";
+  if (!p.logado) return "ORQUESTRADOR · entre para ver";
+  const nome = p.nome?.trim();
+  const quem = nome
+    ? nome.length > ROTULO_NOME_MAX
+      ? `${nome.slice(0, ROTULO_NOME_MAX - 1)}…`
+      : nome
+    : "sem IA no cofre";
+  return `ORQUESTRADOR · ${quem}${p.ativo ? " · delegando" : ""}`;
 }

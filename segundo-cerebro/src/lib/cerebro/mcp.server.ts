@@ -157,7 +157,11 @@ async function chamarFerramenta(n: Nucleo, nome: string, args: Record<string, un
           tokens_entrada: decisao.uso?.tokens_entrada ?? 0,
           tokens_saida: decisao.uso?.tokens_saida ?? 0,
           tokens_cache: decisao.uso?.tokens_cache ?? 0,
-          meta: { area: decisao.area, agentes: decisao.agentes.map(a => a.id) },
+          meta: {
+            area: decisao.area,
+            agentes: decisao.agentes.map((a) => a.id),
+            nomes: decisao.agentes.map((a) => a.nome),
+          },
         }),
       );
       return texto(montarInstrucoes(pedido, decisao, ficha, projeto));

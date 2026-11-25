@@ -183,6 +183,11 @@ describe("porta MCP do núcleo", () => {
       ferramenta: "claude-code",
       projeto: "crm-x",
     });
+    // O evento leva os nomes reais do catálogo, na mesma ordem dos ids, para o cérebro mostrar.
+    const meta = n.store.eventos.at(-1)!.meta as { agentes: string[]; nomes: string[] };
+    expect(meta.nomes).toHaveLength(meta.agentes.length);
+    expect(meta.nomes.length).toBeGreaterThan(0);
+    expect(texto).toContain(meta.nomes[0]!);
   });
 
   it("orquestra com a IA do cofre usando a chave decifrada e registra o consumo", async () => {
@@ -393,5 +398,29 @@ describe("resumo de atividade para o painel", () => {
     expect(r.limites).toMatchObject({ limite_5h_pct: 40, limite_7d_pct: 12 });
     expect(r.ativos).toEqual(["claude-code"]);
     expect(r.semana.tokens).toBe(1700);
+  });
+  it("delegações trazem os nomes dos agentes (vazio em eventos antigos sem nomes)", () => {
+    const r = resumirAtividade(
+      [
+        ev({
+          id: 2,
+          tipo: "delegacao",
+          agente: "orquestrador",
+          meta: {
+            area: "desenvolvimento",
+            agentes: ["engineering/engineering-backend-architect"],
+            nomes: ["Backend Architect"],
+          },
+        }),
+        ev({
+          id: 1,
+          tipo: "delegacao",
+          agente: "orquestrador",
+          meta: { area: "marketing", agentes: ["marketing/marketing-x"] },
+        }),
+      ],
+      new Date(),
+    );
+    expect(r.delegacoes.map((d) => d.nomes)).toEqual([["Backend Architect"], []]);
   });
 });
