@@ -1,0 +1,213 @@
+import { describe, expect, it } from "vitest";
+import { build, detalheDoNo, regionAt } from "@/components/dash/brain-graph-model";
+import {
+  buildBrainIndex,
+  GROUPS,
+  inRegion,
+  REGIAO_DO_DEPARTAMENTO,
+  REGIONS,
+  type RegionId,
+} from "@/components/dash/brain";
+import { agentesDoDepartamento } from "@/lib/cerebro/agentes-cliente";
+import { DEPARTAMENTOS } from "@/lib/cerebro/agencia";
+import agentesJson from "@/lib/cerebro/agentes.json";
+import catalogo from "@/lib/cerebro/catalogo.json";
+import divisoes from "@/lib/cerebro/divisoes.json";
+
+describe("departamentos e agentes reais ocupam os lobos", () => {
+  it("cada departamento é um hub e cada agente real é um neurônio dentro da sua região", () => {
+    const { nodes } = build();
+    const hubs = nodes.filter((n) => n.hub && n.g >= 0);
+    const agentes = nodes.filter((n) => n.agenteId);
+    expect(hubs.map((h) => h.label)).toEqual(DEPARTAMENTOS.map((d) => d.rotulo));
+    expect(agentes.length).toBe(Object.values(divisoes).reduce((a, b) => a + b, 0));
+    expect(
+      agentes.find((n) => n.agenteId === "engineering/engineering-backend-architect")!.label,
+    ).toBe("Backend Architect");
+    for (const n of agentes) expect(inRegion(GROUPS[n.g]!.region, n.tx, n.ty)).toBe(true);
+    // hubs de departamentos na mesma região não coincidem
+    const frontal = hubs.filter((h) => GROUPS[h.g]!.region === "frontal");
+    expect(
+      Math.hypot(frontal[0]!.tx - frontal[1]!.tx, frontal[0]!.ty - frontal[1]!.ty),
+    ).toBeGreaterThan(20);
+    expect(GROUPS.find((g) => g.dep === "dev")).toMatchObject({
+      region: "parietal",
+      n: 66,
+      id: "Desenvolvimento",
+    });
+    expect(buildBrainIndex([])).toContain("- Desenvolvimento → Lobo parietal");
+    expect(buildBrainIndex([])).not.toContain("notas/");
+  });
+
+  it("todo hub fica dentro da sua região e hubs que dividem região ficam visivelmente separados", () => {
+    const hubs = build().nodes.filter((n) => n.hub && n.g >= 0);
+    for (const h of hubs) expect(inRegion(GROUPS[h.g]!.region, h.tx, h.ty)).toBe(true);
+    const porRegiao = new Map<RegionId, typeof hubs>();
+    for (const h of hubs) {
+      const r = GROUPS[h.g]!.region;
+      porRegiao.set(r, [...(porRegiao.get(r) ?? []), h]);
+    }
+    // frontal, occipital, temporal e cerebelo têm dois departamentos cada
+    expect([...porRegiao.values()].filter((hs) => hs.length > 1)).toHaveLength(4);
+    for (const hs of porRegiao.values())
+      for (let i = 0; i < hs.length; i++)
+        for (let j = i + 1; j < hs.length; j++)
+          expect(Math.hypot(hs[i]!.tx - hs[j]!.tx, hs[i]!.ty - hs[j]!.ty)).toBeGreaterThan(20);
+  });
+
+  it("cada neurônio de agente aparece uma vez, no grupo do seu departamento, ligado à rede", () => {
+    const { nodes, links } = build();
+    const agentes = nodes.filter((n) => n.agenteId);
+    expect(new Set(agentes.map((n) => n.agenteId)).size).toBe(agentes.length);
+    for (const g of GROUPS) {
+      const doGrupo = agentes.filter((n) => GROUPS[n.g] === g);
+      expect(doGrupo.map((n) => ({ id: n.agenteId, nome: n.label }))).toEqual(
+        agentesDoDepartamento(g.dep),
+      );
+      expect(doGrupo).toHaveLength(g.n);
+    }
+    const ligados = new Set(links.flat());
+    for (const n of agentes) expect(ligados.has(n.id)).toBe(true);
+  });
+
+  it("a rede fica leve (o SVG redesenha a cada quadro) e todo agente chega ao hub do seu departamento", () => {
+    const { nodes, links } = build();
+    // ~290 neurônios: sinapses limitadas para o total ficar perto das ~500 ligações de antes dos agentes
+    expect(links.length).toBeLessThanOrEqual(620);
+    // árvore: raiz → hubs e hub → agentes (cada agente pendura no hub ou num irmão do mesmo departamento)
+    expect(links.length).toBeGreaterThanOrEqual(nodes.length - 1);
+    for (const [gi] of GROUPS.entries()) {
+      const hub = nodes.find((n) => n.hub && n.g === gi)!;
+      const doGrupo = new Set(nodes.filter((n) => n.g === gi).map((n) => n.id));
+      const alcancados = new Set([hub.id]);
+      for (let mudou = true; mudou;) {
+        mudou = false;
+        for (const [a, b] of links) {
+          if (!doGrupo.has(a) || !doGrupo.has(b)) continue;
+          if (alcancados.has(a) !== alcancados.has(b)) {
+            alcancados.add(a).add(b);
+            mudou = true;
+          }
+        }
+      }
+      for (const n of nodes.filter((x) => x.agenteId && x.g === gi))
+        expect(alcancados.has(n.id)).toBe(true);
+    }
+  });
+
+  it("GROUPS segue DEPARTAMENTOS com a região, a cor e o total reais", () => {
+    expect(GROUPS.map((g) => g.dep)).toEqual(DEPARTAMENTOS.map((d) => d.id));
+    expect(REGIAO_DO_DEPARTAMENTO).toEqual({
+      estrategia: "frontal",
+      produto: "frontal",
+      dev: "parietal",
+      design: "occipital",
+      midia: "occipital",
+      marketing: "temporal",
+      vendas: "temporal",
+      qualidade: "cerebellum",
+      especialistas: "cerebellum",
+      seguranca: "brainstem",
+    });
+    for (const [i, d] of DEPARTAMENTOS.entries())
+      expect(GROUPS[i]).toEqual({
+        id: d.rotulo,
+        dep: d.id,
+        c: d.cor,
+        n: agentesDoDepartamento(d.id).length,
+        region: REGIAO_DO_DEPARTAMENTO[d.id],
+      });
+    // divisões fora de DEPARTAMENTOS (academic, gis, ...) caem em Especialistas
+    expect(GROUPS.find((g) => g.dep === "especialistas")!.n).toBe(
+      divisoes.academic +
+        divisoes["game-development"] +
+        divisoes.gis +
+        divisoes.healthcare +
+        divisoes.research +
+        divisoes["spatial-computing"],
+    );
+    expect(GROUPS.find((g) => g.dep === "vendas")!.n).toBe(divisoes.sales + divisoes.support);
+  });
+
+  it("agentesDoDepartamento manda divisões fora de DEPARTAMENTOS para especialistas", () => {
+    expect(agentesDoDepartamento("especialistas").map((a) => a.id)).toContain(
+      "academic/academic-anthropologist",
+    );
+    expect(agentesDoDepartamento("dev").every((a) => a.id.startsWith("engineering/"))).toBe(true);
+    const todos = DEPARTAMENTOS.flatMap((d) => agentesDoDepartamento(d.id).map((a) => a.id));
+    expect(todos.sort()).toEqual(catalogo.map((a) => a.id).sort());
+  });
+
+  it("buildBrainIndex lista departamentos → regiões e manda registrar na ficha", () => {
+    const indice = buildBrainIndex([]);
+    expect(indice).toContain("## Departamentos → regiões");
+    expect(indice).not.toContain("## Pastas → regiões");
+    expect(indice).toContain(
+      "- Desenvolvimento → Lobo parietal (integração · estrutura), 66 agentes",
+    );
+    for (const g of GROUPS) expect(indice).toContain(`- ${g.id} → `);
+    expect(indice).toContain("- Registre decisões e progresso na ficha do projeto (salvar_ficha).");
+    expect(indice).not.toContain("wikilinks");
+  });
+});
+
+describe("agentes ficam visualmente dentro do lobo e o painel fala de agentes", () => {
+  it("todo neurônio de agente cai na região que o córtex pinta com a cor do seu lobo (regionAt)", () => {
+    const { nodes } = build();
+    const agentes = nodes.filter((n) => n.agenteId);
+    for (const n of agentes) expect(regionAt(n.tx, n.ty)).toBe(GROUPS[n.g]!.region);
+    // o recurso de cair no hub não pode virar a regra: os neurônios ficam espalhados pelo lobo
+    for (const [gi] of GROUPS.entries()) {
+      const hub = nodes.find((n) => n.hub && n.g === gi)!;
+      const noHub = agentes.filter((n) => n.g === gi && n.tx === hub.tx && n.ty === hub.ty);
+      expect(noHub).toHaveLength(0);
+    }
+  });
+
+  it("todo hub de departamento também cai na região pintada com a cor do seu lobo", () => {
+    for (const h of build().nodes.filter((n) => n.hub && n.g >= 0))
+      expect(regionAt(h.tx, h.ty)).toBe(GROUPS[h.g]!.region);
+  });
+
+  it("a raiz é o Orquestrador", () => {
+    const raiz = build().nodes[0]!;
+    expect(raiz.g).toBe(-1);
+    expect(raiz.label).toBe("Orquestrador");
+  });
+
+  it("detalheDoNo mostra agente, departamento e região, sem texto de nota do vault", () => {
+    const { nodes } = build();
+    const agente = nodes.find((n) => n.agenteId === "engineering/engineering-backend-architect")!;
+    expect(detalheDoNo(agente)).toEqual({
+      titulo: "Backend Architect",
+      linhas: ["Departamento: Desenvolvimento", "Região: Lobo parietal"],
+    });
+    const hub = nodes.find((n) => n.hub && n.label === "Produto e projetos")!;
+    expect(detalheDoNo(hub)).toEqual({
+      titulo: "Produto e projetos",
+      linhas: ["Região: Lobo frontal", `${GROUPS.find((g) => g.dep === "produto")!.n} agentes`],
+    });
+    expect(detalheDoNo(nodes[0]!)).toEqual({ titulo: "Orquestrador", linhas: [] });
+    for (const n of nodes) {
+      const d = detalheDoNo(n);
+      const texto = [d.titulo, ...d.linhas].join(" ");
+      expect(texto).not.toMatch(/\.md|Backlinks|Tag #|\[\[|nota/);
+      if (n.g >= 0) expect(d.linhas).toContain(`Região: ${REGIONS[GROUPS[n.g]!.region].name}`);
+    }
+  });
+
+  it("brain.md manda usar os agentes do departamento, não ler pastas", () => {
+    const indice = buildBrainIndex([]);
+    expect(indice).toContain("- Use os agentes do departamento indicado pelo orquestrador.");
+    expect(indice).not.toContain("Leia apenas as pastas");
+    expect(indice).not.toContain("pastas");
+  });
+});
+
+describe("agentes.json sem deriva", () => {
+  it("é o catalogo.json agrupado por divisão, só com id e nome, na ordem do catálogo", () => {
+    const esperado: Record<string, { id: string; nome: string }[]> = {};
+    for (const a of catalogo) (esperado[a.divisao] ??= []).push({ id: a.id, nome: a.nome });
+    expect(agentesJson).toEqual(esperado);
+  });
+});

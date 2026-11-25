@@ -23,6 +23,7 @@ import { NovoProvedor, PAPEIS, type Provedor } from "./types";
  *   POST   /api/painel/sair
  *   GET    /api/painel/sessao
  *   GET    /api/painel/atividade
+ *   GET    /api/painel/fichas               (projetos e onde pararam)
  *   GET    /api/painel/provedores           (nunca devolve a chave)
  *   POST   /api/painel/provedores           { nome, fornecedor, modelo, papel, cor, chave }
  *   PATCH  /api/painel/provedores/<id>      { papel }
@@ -83,6 +84,7 @@ export async function handlePainel(request: Request, n: Nucleo | null): Promise<
       const desde = new Date(Date.now() - 7 * 24 * 3600_000).toISOString();
       return json(resumirAtividade(await n.store.eventosDesde(desde, 2000)));
     }
+    if (rota[0] === "fichas" && metodo === "GET") return json(await n.store.listarFichas());
     if (rota[0] === "perguntar" && metodo === "POST") {
       const { provedorId, pedido, skill, delegar } = z
         .object({

@@ -165,6 +165,16 @@ export function estadoAgencia(
   };
 }
 
+/**
+ * Ids de todos os agentes chamados nas delegações recebidas: são os neurônios que acendem dentro dos lobos.
+ * A janela de tempo (15 min) já vem aplicada pelo servidor; delegação sem agentes não acende nada.
+ */
+export function agentesAcesos(delegacoes: Atividade["delegacoes"] | undefined): Set<string> {
+  const acesos = new Set<string>();
+  for (const deleg of delegacoes ?? []) for (const id of deleg.agentes) acesos.add(id);
+  return acesos;
+}
+
 const ROTULO_NOME_MAX = 24;
 
 /**

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BrainCircuit, Network, Blocks, Code2, CircleHelp, Palette, SlidersHorizontal, ArrowUpRight, Megaphone, Newspaper, BookOpen } from "lucide-react";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { newsQueryOptions } from "@/lib/news-query";
 import { Button } from "@/components/ui/button";
 import { GraphPanel } from "@/components/dash/GraphPanel";
@@ -16,6 +16,8 @@ import { JarvisPanel } from "@/components/dash/JarvisPanel";
 import { CampaignsPanel } from "@/components/dash/CampaignsPanel";
 import { NewsPanel } from "@/components/dash/NewsPanel";
 import { NucleoPanel } from "@/components/dash/NucleoPanel";
+import { useSessao } from "@/lib/cerebro/use-atividade";
+import { ProjetosPanel } from "@/components/dash/ProjetosPanel";
 
 export const Route = createFileRoute("/")({
   loader: async ({ context }) => { await context.queryClient.ensureQueryData(newsQueryOptions()); },
@@ -51,6 +53,15 @@ function SectionHeading({ n, title, detail }: { n: string; title: string; detail
   </div>;
 }
 
+function OndeEuParei() {
+  const sessao = useSessao();
+  const logado = !!sessao.data?.logado;
+  // O link do alerta do Claude Code abre /#onde-eu-parei: a seção só existe depois do login, então rola até ela quando aparece.
+  useEffect(() => { if (logado && window.location.hash === "#onde-eu-parei") document.getElementById("onde-eu-parei")?.scrollIntoView(); }, [logado]);
+  if (!logado) return null;
+  return <div id="onde-eu-parei" className="mt-8 scroll-mt-6"><SectionHeading n="01.2" title="Onde eu parei" detail="Projetos e como continuar em outra IA" /><ProjetosPanel /></div>;
+}
+
 function Index() {
   return <div className="workspace-shell min-h-screen bg-fx-black text-fx-200">
     <nav aria-label="Espaço de trabalho" className="workspace-rail">
@@ -72,6 +83,7 @@ function Index() {
         <SectionHeading n="01" title="Inteligências conectadas" detail="Um núcleo. Múltiplas perspectivas." />
         <div className="h-[1100px] lg:h-[800px]"><GraphPanel /></div>
         <div className="mt-8"><SectionHeading n="01.1" title="Núcleo ao vivo" detail="Quem está trabalhando, o que fez e quanto gastou" /><NucleoPanel /></div>
+        <OndeEuParei />
       </section>
       <section id="campanhas" className="workspace-section">
         <SectionHeading n="02" title="Operação dos clientes" detail="Google Ads e Meta Ads" />
