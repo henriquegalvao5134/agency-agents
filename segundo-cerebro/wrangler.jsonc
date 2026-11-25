@@ -1,0 +1,13 @@
+// Configuração do Worker na Cloudflare (o build do nitro junta isto ao wrangler.json gerado).
+// Segredos (CEREBRO_TOKEN, CEREBRO_SENHA_PAINEL, CEREBRO_CHAVE_MESTRA) ficam só no painel da Cloudflare.
+{
+  "name": "henriquegalvao5134-agency-agents-segundo-cerebro",
+  "d1_databases": [
+    {
+      "binding": "CEREBRO_DB",
+      "database_name": "cerebro",
+      "database_id": "e340304d-bb9b-4dc5-95b4-45472b7370be"
+    }
+  ],
+  "observability": { "enabled": true }
+}

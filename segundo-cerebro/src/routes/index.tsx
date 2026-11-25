@@ -15,6 +15,7 @@ import brandIcon from "@/assets/autogtec-icon.png.asset.json";
 import { JarvisPanel } from "@/components/dash/JarvisPanel";
 import { CampaignsPanel } from "@/components/dash/CampaignsPanel";
 import { NewsPanel } from "@/components/dash/NewsPanel";
+import { NucleoPanel } from "@/components/dash/NucleoPanel";
 
 export const Route = createFileRoute("/")({
   loader: async ({ context }) => { await context.queryClient.ensureQueryData(newsQueryOptions()); },
@@ -70,6 +71,7 @@ function Index() {
       <section id="cerebro" className="workspace-section">
         <SectionHeading n="01" title="Inteligências conectadas" detail="Um núcleo. Múltiplas perspectivas." />
         <div className="h-[1100px] lg:h-[800px]"><GraphPanel /></div>
+        <div className="mt-8"><SectionHeading n="01.1" title="Núcleo ao vivo" detail="Quem está trabalhando, o que fez e quanto gastou" /><NucleoPanel /></div>
       </section>
       <section id="campanhas" className="workspace-section">
         <SectionHeading n="02" title="Operação dos clientes" detail="Google Ads e Meta Ads" />

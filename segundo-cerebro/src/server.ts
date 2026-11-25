@@ -2,7 +2,22 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError, logError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
-import { handleLiveRequest } from "./lib/live-relay.server";
+import { definirAmbiente } from "./lib/cerebro/ambiente.server";
+import { handleCerebroHttp } from "./lib/cerebro/http.server";
+import { handleMcpRequest } from "./lib/cerebro/mcp.server";
+import { nucleoDoAmbiente } from "./lib/cerebro/nucleo.server";
+import { handlePainel } from "./lib/cerebro/painel.server";
+
+/** Cabeçalhos de segurança em todas as respostas. */
+function protegido(response: Response): Response {
+  const r = new Response(response.body, response);
+  r.headers.set("x-content-type-options", "nosniff");
+  r.headers.set("x-frame-options", "DENY");
+  r.headers.set("referrer-policy", "strict-origin-when-cross-origin");
+  r.headers.set("strict-transport-security", "max-age=31536000; includeSubDomains");
+  r.headers.set("permissions-policy", "camera=(), geolocation=(), microphone=(self)");
+  return r;
+}
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -51,10 +66,17 @@ function isH3SwallowedErrorBody(body: string): boolean {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
-      if (new URL(request.url).pathname === "/api/live") return handleLiveRequest(request);
+      definirAmbiente(env);
+      const pathname = new URL(request.url).pathname;
+      if (pathname === "/api/mcp" || pathname.startsWith("/api/mcp/"))
+        return protegido(await handleMcpRequest(request, nucleoDoAmbiente()));
+      if (pathname.startsWith("/api/cerebro/"))
+        return protegido(await handleCerebroHttp(request, nucleoDoAmbiente()));
+      if (pathname.startsWith("/api/painel/"))
+        return protegido(await handlePainel(request, nucleoDoAmbiente()));
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      return protegido(await normalizeCatastrophicSsrResponse(response));
     } catch (error) {
       logError(error);
       return new Response(renderErrorPage(), {

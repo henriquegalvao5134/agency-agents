@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { agentSnapshot, saveAgentSnapshot, serverAgentSnapshot, subscribeAgents } from "@/lib/brain-agent-store";
-import { useServerFn } from "@tanstack/react-start";
-import { askBrainAgent, routeBrainAgent, BRAIN_MODELS } from "@/lib/brain-ai.functions";
-import { agentIsWorking, isTaskActive, validateDelegation, type BrainTask } from "@/lib/brain-routing";
+import { agentIsWorking, isTaskActive, type BrainTask } from "@/lib/brain-routing";
 import { TaskMonitor } from "./TaskMonitor";
+import { useAtividade, useProvedores } from "@/lib/cerebro/use-atividade";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { FX } from "./Panel";
@@ -48,22 +47,24 @@ export function GraphPanel() {
   const regionAct = useRef(new Map<RegionId, number>());
   const [skill, setSkill] = useState<(typeof SKILLS)[number] | null>(null);
   const timers = useRef<number[]>([]);
-  const agents = useSyncExternalStore(subscribeAgents, agentSnapshot, serverAgentSnapshot);
+  const agentesLocais = useSyncExternalStore(subscribeAgents, agentSnapshot, serverAgentSnapshot);
+  // IAs cadastradas no cofre do núcleo (com chave cifrada no servidor) também viram entradas do cérebro.
+  const { data: cofre = [] } = useProvedores();
+  const agents = [...agentesLocais, ...cofre.filter(p => !agentesLocais.some(a => a.id === `cofre:${p.id}`)).map(p => ({ id: `cofre:${p.id}`, name: p.nome, vendor: p.fornecedor, c: p.cor, model: `${p.fornecedor}/${p.modelo}`, kind: "api" as const }))];
   const [agent, setAgent] = useState<AgentId>("claude-code");
   const [log, setLog] = useState<string[]>([]);
   const [menu, setMenu] = useState(false);
-  const [form, setForm] = useState({ name: "", model: BRAIN_MODELS[0] as string, c: "blue", kind: "autonomous" as "api" | "autonomous" });
   const [prompt, setPrompt] = useState("");
   // Many AIs can think at once: each agent has its own busy flag and answer, all reading the same AI core.
   const [tasks, setTasks] = useState<BrainTask[]>([]);
   const [delegate, setDelegate] = useState(true);
-  const busyMap = Object.fromEntries(agents.map(a => [a.id, agentIsWorking(tasks, a.id)]));
+  // Uma entrada de IA também acende quando essa ferramenta registrou atividade real no núcleo (Claude Code, etc.).
+  const ativosNoNucleo = useAtividade().data?.ativos ?? [];
+  const busyMap = Object.fromEntries(agents.map(a => [a.id, agentIsWorking(tasks, a.id) || ativosNoNucleo.includes(a.id)]));
   const activeTasks = tasks.filter(isTaskActive);
   const runningSkills = SKILLS.filter(s => activeTasks.some(t => t.phase === "running" && t.skillId === s.id));
   const [answers, setAnswers] = useState<Record<string, { ok: boolean; text: string }>>({});
-  const ask = useServerFn(askBrainAgent);
-  const route = useServerFn(routeBrainAgent);
-  const saveAgents = saveAgentSnapshot;
+  const saveAgents = (lista: Agent[]) => saveAgentSnapshot(lista.filter(a => !a.id.startsWith("cofre:")));
   const ag = agents.find(a => a.id === agent) ?? agents[0] ?? DEFAULT_AGENTS[0]!;
   const online = new Set(agents.filter(a => a.model).map(a => a.id));
   // Fire a skill: light each region of its path in order and launch a burst of synaptic pulses there.
@@ -78,36 +79,34 @@ export function GraphPanel() {
     }, 500 + step * 550)));
   };
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  // A caixa do cérebro fala com o núcleo: o orquestrador do cofre escolhe os subagentes e a IA selecionada responde com a chave dela.
   const send = async () => {
     const me = ag;
     const selectedSkill = skill ?? SKILLS[0];
-    const model = BRAIN_MODELS.find(m => m === me.model);
     const request = prompt.trim();
-    if (!model || !selectedSkill || !request) { setAnswers(a => ({ ...a, [me.id]: { ok: false, text: `${me.name} precisa de um modelo conectado e uma tarefa.` } })); return; }
+    if (!selectedSkill || !request) return;
+    if (!me.id.startsWith("cofre:")) {
+      setAnswers(a => ({ ...a, [me.id]: { ok: false, text: `${me.name} ainda não tem chave no cofre. Cadastre uma IA em "Cofre de IAs" (logo abaixo do cérebro) e selecione ela aqui.` } }));
+      return;
+    }
     const id = crypto.randomUUID(), startedAt = Date.now();
-    setTasks(ts => [{ id, mode: delegate ? "delegated" : "direct", toolCallId: null, sourceId: me.id, source: me.name, targetId: delegate ? null : me.id, target: delegate ? null : me.name,
-      skillId: delegate ? null : selectedSkill.id, skill: delegate ? null : selectedSkill.label, task: request, reason: "",
+    setTasks(ts => [{ id, mode: delegate ? "delegated" : "direct", toolCallId: null, sourceId: me.id, source: me.name, targetId: me.id, target: me.name,
+      skillId: selectedSkill.id, skill: selectedSkill.label, task: request, reason: "",
       phase: delegate ? "routing" : "running", startedAt, finishedAt: null,
-      events: [{ at: startedAt, label: delegate ? `${me.name} chamou a IA roteadora · lendo índice brain.md` : `${me.name} iniciou execução direta` }],
+      events: [{ at: startedAt, label: delegate ? `${me.name} chamou o orquestrador do núcleo` : `${me.name} iniciou execução direta` }],
     }, ...ts]);
     const updateTask = (patch: Partial<BrainTask>, label: string) => setTasks(ts => ts.map(t => t.id === id ? { ...t, ...patch, events: [...t.events, { at: Date.now(), label }] } : t));
     try {
-      let target = me, sk = selectedSkill, taskPrompt = request;
-      if (delegate) {
-        const connected = agents.flatMap(a => { const m = BRAIN_MODELS.find(v => v === a.model); return m ? [{ id: a.id, name: a.name, vendor: a.vendor, c: a.c, model: m }] : []; });
-        const result = await route({ data: { model, source: me.name, prompt: request, context: buildBrainIndex(agents), agents: connected } });
-        if (!result.ok) throw new Error(result.text);
-        const validated = validateDelegation(result.decision, agents);
-        target = validated.target; sk = validated.skill; taskPrompt = validated.decision.task;
-        updateTask({ phase: "running", toolCallId: result.toolCallId, targetId: target.id, target: target.name, skillId: sk.id, skill: sk.label, task: taskPrompt, reason: validated.decision.reason },
-          `delegar_tarefa · ${result.toolCallId} · Orquestrador → ${target.name} → ${sk.label}`);
-      }
-      const targetModel = BRAIN_MODELS.find(m => m === target.model);
-      if (!targetModel) throw new Error("O agente escolhido não tem modelo disponível.");
-      fire(sk, target);
-      const response = await ask({ data: { model: targetModel, agent: target.name, skill: sk.label, regions: sk.path.map(r => REGIONS[r].name), prompt: taskPrompt, context: buildBrainIndex(agents) } });
-      setAnswers(a => ({ ...a, [me.id]: response, [target.id]: response }));
-      updateTask({ phase: response.ok ? "completed" : "failed", finishedAt: Date.now() }, response.ok ? `${target.name} devolveu o resultado` : response.text);
+      const r = await fetch("/api/painel/perguntar", {
+        method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ provedorId: me.id.slice("cofre:".length), pedido: request, skill: selectedSkill.label, delegar: delegate }),
+      });
+      const corpo = (await r.json().catch(() => ({}))) as { texto?: string; erro?: string; area?: string | null; agentes?: string[] };
+      if (!r.ok) throw new Error(corpo.erro ?? `Erro ${r.status}`);
+      if (delegate) updateTask({ phase: "running", reason: `${corpo.area ?? ""}: ${(corpo.agentes ?? []).join(", ")}` }, `Orquestrador → ${(corpo.agentes ?? []).join(", ") || "sem subagente"} → ${me.name}`);
+      fire(selectedSkill, me);
+      setAnswers(a => ({ ...a, [me.id]: { ok: true, text: corpo.texto ?? "" } }));
+      updateTask({ phase: "completed", finishedAt: Date.now() }, `${me.name} devolveu o resultado`);
     } catch (error) {
       const text = error instanceof Error ? error.message : "Não foi possível falar com a IA.";
       setAnswers(a => ({ ...a, [me.id]: { ok: false, text } }));
@@ -190,7 +189,7 @@ export function GraphPanel() {
               <rect x={PORT_X - 40} y={a.y - 15} width={110} height={30} rx={6} fill={fx("950")} stroke={fx(act ? a.c : "700")} strokeWidth={act ? 1.6 : 1} filter={act ? "url(#neon)" : undefined} />
               <circle cx={PORT_X - 26} cy={a.y} r={4} fill={fx(on ? a.c : "600")}>{act && <animate attributeName="r" values="3;5;3" dur="1.2s" repeatCount="indefinite" />}</circle>
               <text x={PORT_X - 16} y={a.y - 1} fontSize={9} fontWeight={600} fontFamily="var(--font-sans)" fill={fx(act ? "paper" : "300")}>{a.name}</text>
-              <text x={PORT_X - 16} y={a.y + 9} fontSize={7} fontFamily="var(--font-mono)" fill={fx("500")}>{busyMap[a.id] ? "◉ pensando" : on ? (act ? "● selecionada" : "● online") : "○ precisa de chave"} · {a.vendor}</text>
+              <text x={PORT_X - 16} y={a.y + 9} fontSize={7} fontFamily="var(--font-mono)" fill={fx("500")}>{busyMap[a.id] ? "◉ trabalhando" : a.kind === "autonomous" && !a.id.startsWith("cofre:") ? "○ via MCP" : on ? (act ? "● selecionada" : "● cofre") : "○ precisa de chave"} · {a.vendor}</text>
               <circle cx={PORT_X + 70} cy={a.y} r={3} fill={fx(on ? a.c : "700")} />
               </g>
             </g>); })}
@@ -274,18 +273,11 @@ export function GraphPanel() {
       </div>
         <Dialog open={menu} onOpenChange={setMenu}><DialogContent className="max-h-[85dvh] w-[calc(100%-2rem)] overflow-y-auto border-fx-700 bg-fx-950 text-fx-paper">
           <DialogTitle>Conectar IA ao cérebro</DialogTitle>
-          <DialogDescription className="text-fx-300">Cada cadastro cria uma instância independente com acesso ao mesmo índice. Modelos disponíveis usam a conexão integrada; chaves próprias ainda não estão conectadas.</DialogDescription>
-          <div className="space-y-3">
-          <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nome (ex.: Bot de pesquisa)" className="w-full border border-fx-800 bg-fx-950 px-1.5 py-0.5 text-fx-paper outline-none focus:border-fx-cyan" />
-          <select value={form.model} onChange={e => setForm({ ...form, model: e.target.value })} className="w-full border border-fx-800 bg-fx-950 px-1 py-0.5 font-mono text-fx-200">{BRAIN_MODELS.map(m => <option key={m}>{m}</option>)}<option value="">outro (precisa de chave própria)</option></select>
-          <div className="flex gap-1">{(["autonomous", "api"] as const).map(k => <button key={k} onClick={() => setForm({ ...form, kind: k })} className={`flex-1 border px-1 ${form.kind === k ? "border-fx-cyan text-fx-cyan" : "border-fx-800 text-fx-500"}`}>{k === "api" ? "Chave API" : "Agente autônomo"}</button>)}</div>
-          <div className="flex gap-1">{FX.map(c => <button key={c} aria-label={c} onClick={() => setForm({ ...form, c })} className="h-4 w-4" style={{ background: fx(c), outline: form.c === c ? `1px solid ${fx("paper")}` : "none" }} />)}</div>
-          <Button disabled={!form.name.trim()} onClick={() => { const id = crypto.randomUUID(); saveAgents([...agents, { id, name: form.name.trim(), vendor: form.model.split("/")[0] ?? "custom", c: form.c, model: form.model || null, kind: form.kind }]); setAgent(id); setForm({ ...form, name: "" }); setMenu(false); }} className="w-full bg-fx-cyan font-semibold text-fx-black hover:bg-fx-cyan/80">Adicionar IA</Button>
-          <div className="max-h-28 space-y-0.5 overflow-auto border-t border-fx-800 pt-1">{agents.map(a => <div key={a.id} className="flex items-center gap-1"><span style={{ color: fx(a.c) }}>●</span><span className="flex-1 truncate text-fx-300">{a.name}</span>
-            <select value={a.model ?? ""} onChange={e => saveAgents(agents.map(x => x.id === a.id ? { ...x, model: e.target.value || null } : x))} className="w-28 bg-fx-950 font-mono text-[11px] text-fx-500"><option value="">sem modelo</option>{BRAIN_MODELS.map(m => <option key={m}>{m}</option>)}</select>
-            <button aria-label={`Duplicar ${a.name}`} title="Adicionar outra instância" onClick={() => { const n = agents.filter(x => x.name.startsWith(a.name.replace(/ #\d+$/, ""))).length + 1; saveAgents([...agents, { ...a, id: `${a.id}-${Date.now()}`, name: `${a.name.replace(/ #\d+$/, "")} #${n}` }]); }} className="text-fx-cyan">⧉</button><button aria-label={`Remover ${a.name}`} onClick={() => saveAgents(agents.filter(x => x.id !== a.id))} className="text-fx-red">×</button></div>)}
+          <DialogDescription className="text-fx-300">As IAs com chave ficam no Cofre de IAs, logo abaixo do cérebro: a chave é cifrada no servidor e nunca volta para o navegador. Ferramentas como Claude Code e Codex se conectam pela porta MCP e acendem aqui quando trabalham.</DialogDescription>
+          <Button asChild className="w-full bg-fx-cyan font-semibold text-fx-black hover:bg-fx-cyan/80"><a href="#cofre" onClick={() => setMenu(false)}>Abrir o Cofre de IAs</a></Button>
+          <div className="max-h-40 space-y-0.5 overflow-auto border-t border-fx-800 pt-2 text-xs">{agents.map(a => <div key={a.id} className="flex items-center gap-1"><span style={{ color: fx(a.c) }}>●</span><span className="flex-1 truncate text-fx-300">{a.name}</span><span className="font-mono text-[11px] text-fx-500">{a.id.startsWith("cofre:") ? "cofre" : "ferramenta"}</span>{!a.id.startsWith("cofre:") && <button aria-label={`Remover ${a.name}`} onClick={() => saveAgents(agents.filter(x => x.id !== a.id))} className="text-fx-red">×</button>}</div>)}
             <button onClick={() => saveAgents(DEFAULT_AGENTS)} className="text-[11px] text-fx-600 underline">restaurar padrões</button></div>
-          </div><Button variant="outline" onClick={() => setMenu(false)} className="border-fx-700 bg-fx-900 text-fx-paper">Cancelar</Button>
+          <Button variant="outline" onClick={() => setMenu(false)} className="border-fx-700 bg-fx-900 text-fx-paper">Fechar</Button>
         </DialogContent></Dialog>
       <TaskMonitor tasks={tasks} />
       </div>
