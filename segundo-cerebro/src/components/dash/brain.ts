@@ -198,7 +198,7 @@ export function buildBrainIndex(agents: Agent[]) {
         `- ${a.name} [${a.kind === "autonomous" ? "autônomo" : "chave API"}] ${a.model ?? "precisa de chave"}`,
     ),
     "## Regras",
-    "- Leia apenas as pastas das regiões do caminho da sua skill.",
+    "- Use os agentes do departamento indicado pelo orquestrador.",
     "- Registre decisões e progresso na ficha do projeto (salvar_ficha).",
   ];
   return lines.join("\n");

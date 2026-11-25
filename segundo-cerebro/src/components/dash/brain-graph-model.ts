@@ -120,7 +120,7 @@ export function build() {
     ty: -30,
     bz: 0,
     hub: true,
-    label: "kepano-obsidian",
+    label: "Orquestrador",
   });
   GROUPS.forEach((g, gi) => {
     const R = REGIONS[g.region];
@@ -141,7 +141,8 @@ export function build() {
     });
     links.push([0, hub]);
     const kids: number[] = [];
-    // Um neurônio por agente real do departamento, sorteado dentro da região (rejeição por inRegion).
+    // Um neurônio por agente real do departamento, sorteado dentro da região. Aceita só o ponto que o córtex
+    // pinta com a cor desse lobo (regionAt): inRegion dos quatro lobos aceita o cérebro inteiro.
     for (const agente of agentesDoDepartamento(g.dep)) {
       let x = 0,
         y = 0,
@@ -152,9 +153,9 @@ export function build() {
         x = R.cx + Math.cos(a) * d;
         y = R.cy + Math.sin(a) * d;
         t++;
-      } while (!inRegion(g.region, x, y) && t < 400);
+      } while (regionAt(x, y) !== g.region && t < 400);
       // Sorteio sem sucesso não pode deixar o agente fora do lobo: cai no hub, que está dentro.
-      if (!inRegion(g.region, x, y)) {
+      if (regionAt(x, y) !== g.region) {
         x = hx;
         y = hy;
       }
@@ -184,6 +185,18 @@ export function build() {
       if (Math.hypot(a.tx - b.tx, a.ty - b.ty) < 30 && r() < 0.3) links.push([i, j]);
     }
   return { nodes, links };
+}
+
+/** Texto do painel de detalhe de um neurônio: agente real, hub de departamento ou o orquestrador (raiz). */
+export function detalheDoNo(n: Pick<N, "g" | "label" | "agenteId">): {
+  titulo: string;
+  linhas: string[];
+} {
+  const g = GROUPS[n.g];
+  if (!g) return { titulo: "Orquestrador", linhas: [] };
+  const regiao = `Região: ${REGIONS[g.region].name}`;
+  if (n.agenteId) return { titulo: n.label, linhas: [`Departamento: ${g.id}`, regiao] };
+  return { titulo: g.id, linhas: [regiao, `${g.n} ${g.n === 1 ? "agente" : "agentes"}`] };
 }
 
 export type Pulse = { l: number; t: number; rev: boolean; hops: number; c?: string; speed: number };

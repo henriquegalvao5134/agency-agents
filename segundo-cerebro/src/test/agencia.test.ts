@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  agentesAcesos,
   departamentoDe,
   estadoAgencia,
   FLUXO_DESENVOLVIMENTO,
@@ -127,6 +128,28 @@ describe("estadoAgencia", () => {
         agora,
       ).orquestradorAtivo,
     ).toBe(true);
+  });
+});
+
+describe("agentesAcesos", () => {
+  it("agentesAcesos junta os agentes das delegações e ignora delegação sem agentes", () => {
+    const d = (agentes: string[]) => ({
+      criado_em: new Date().toISOString(),
+      ferramenta: "claude-code",
+      area: "desenvolvimento",
+      agentes,
+      nomes: [],
+    });
+    expect(
+      [
+        ...agentesAcesos([
+          d(["engineering/engineering-backend-architect"]),
+          d([]),
+          d(["design/design-ui-designer", "engineering/engineering-backend-architect"]),
+        ]),
+      ].sort(),
+    ).toEqual(["design/design-ui-designer", "engineering/engineering-backend-architect"]);
+    expect(agentesAcesos(undefined).size).toBe(0);
   });
 });
 

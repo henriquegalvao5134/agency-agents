@@ -3,7 +3,7 @@ import { agentSnapshot, saveAgentSnapshot, serverAgentSnapshot, subscribeAgents 
 import { agentIsWorking, isTaskActive, type BrainTask } from "@/lib/brain-routing";
 import { TaskMonitor } from "./TaskMonitor";
 import { AgenciaLayer } from "./AgenciaLayer";
-import { estadoAgencia, rotuloOrquestrador } from "@/lib/cerebro/agencia";
+import { agentesAcesos, estadoAgencia, rotuloOrquestrador } from "@/lib/cerebro/agencia";
 import { vistaPadrao } from "./brain-camera";
 import divisoes from "@/lib/cerebro/divisoes.json";
 import { useAtividade, useProvedores, useSessao } from "@/lib/cerebro/use-atividade";
@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/compone
 import { FX } from "./Panel";
 import { Move, Rotate3D, RotateCcw, Scan, Hand } from "lucide-react";
 import { Movable } from "./Movable";
-import { build, buildCortex, project, regionAt, type N, type Pulse, type Rot } from "./brain-graph-model";
+import { build, buildCortex, detalheDoNo, project, regionAt, type N, type Pulse, type Rot } from "./brain-graph-model";
 import { Panel } from "./Panel";
 import { fx, rng } from "./panel-utils";
 import { CORE, buildBrainIndex, estimateTokens, BRAIN_IMG, DEFAULT_AGENTS, portY, PORT_X, wirePath, type Agent, type AgentId, BRAINSTEM, CEREBELLUM, CEREBRUM, FOLIA, GROUPS, REGIONS, SKILLS, SULCI, type RegionId } from "./brain";
@@ -70,6 +70,8 @@ export function GraphPanel() {
   const ativosNoNucleo = atividade?.ativos ?? [];
   // Agência GD3 e skills de trabalho: acendem pelas delegações recentes do orquestrador.
   const estado = estadoAgencia(atividade, divisoes);
+  // Agentes chamados nas delegações recentes (janela do servidor) acendem como neurônios dentro do lobo.
+  const acesos = agentesAcesos(atividade?.delegacoes);
   const orquestrador = cofre.find(p => p.papel === "orquestrador");
   const rotuloNucleo = rotuloOrquestrador({ carregando: sessao.isLoading || provedores.isLoading, logado: !!sessao.data?.logado, nome: orquestrador?.nome, ativo: estado.orquestradorAtivo });
   const busyMap = Object.fromEntries(agents.map(a => [a.id, agentIsWorking(tasks, a.id) || ativosNoNucleo.includes(a.id)]));
@@ -164,6 +166,7 @@ export function GraphPanel() {
   const startBrainMove = (e: React.PointerEvent) => { e.stopPropagation(); svg.current?.setPointerCapture(e.pointerId); drag.current = { brain: { x: e.clientX, y: e.clientY, ox: brainOffset.x, oy: brainOffset.y } }; };
   const vis = (n: N) => n.g < 0 || !hidden.has(n.g);
   const color = (n: N) => n.g < 0 ? fx("paper") : fx(GROUPS[n.g]!.c);
+  const regiaoCurta = (id: RegionId) => { const s = REGIONS[id].name.replace("Lobo ", ""); return s.charAt(0).toUpperCase() + s.slice(1); };
   const GYRI = ["M-180,-60 C-150,-80 -120,-40 -90,-70 S-40,-60 -20,-100", "M-170,-10 C-140,-30 -110,0 -80,-25 S-40,-10 -10,-40", "M-130,-120 C-110,-100 -80,-130 -50,-110", "M40,-130 C70,-110 100,-130 130,-100", "M30,-60 C60,-80 90,-50 120,-70 S160,-40 190,-50", "M-120,55 C-90,40 -60,65 -30,45 S20,50 50,30", "M140,10 C160,-5 180,20 200,0"];
   return (
     <Panel n="01" title="Cérebro AutoGTEC" sub="núcleo compartilhado" color="purple" right={<span>cérebro unificado · {activeTasks.length ? `${activeTasks.length} tarefas ativas` : "em espera"}</span>}>
@@ -242,14 +245,20 @@ export function GraphPanel() {
               {n.hub && n.id !== 0 && <g><text textAnchor="middle" y={-11} fontSize={9.5} fontWeight={600} paintOrder="stroke" stroke={fx("black")} strokeWidth={3} fontFamily="var(--font-sans)" fill={color(n)}>{n.label}</text></g>}
             </g>
           ))}
+          {/* Agente delegado: anel pulsando na cor do departamento e o nome, por cima dos outros neurônios */}
+          {data.nodes.filter(n => n.agenteId && acesos.has(n.agenteId) && vis(n)).map(n => (
+            <g key={`aceso-${n.id}`} data-agente-aceso={n.agenteId} transform={`translate(${n.x},${n.y})`} pointerEvents="none">
+              <circle r={7} fill="none" stroke={fx(GROUPS[n.g]!.c)} strokeWidth={1.4}><animate attributeName="r" values="4;9;4" dur="1.2s" repeatCount="indefinite" /></circle>
+              <text textAnchor="middle" y={-11} fontSize={8} fontWeight={600} paintOrder="stroke" stroke={fx("black")} strokeWidth={2.5} fontFamily="var(--font-sans)" fill={fx("paper")}>{n.label}</text>
+            </g>
+          ))}
           </g>
         </g>
       </svg>
       {sel && (
-        <div className="absolute bottom-2 right-2 w-56 border border-fx-700 bg-fx-900 p-2 text-xs">
-          <div className="flex justify-between"><b style={{ color: color(sel) }}>{sel.label}.md</b><button onClick={() => setSel(null)} className="text-fx-500">×</button></div>
-          <p className="mt-1 text-fx-300">{sel.g >= 0 && <span style={{ color: fx(REGIONS[GROUPS[sel.g]!.region].c) }}>{REGIONS[GROUPS[sel.g]!.region].name} · {REGIONS[GROUPS[sel.g]!.region].role}. </span>}{sel.hub ? `Hub da categoria ligando ${data.links.filter(l => l.includes(sel.id)).length} notas.` : `Uma nota em ${GROUPS[sel.g]?.id}. Backlinks: ${data.links.filter(l => l.includes(sel.id)).length}. Tag #${GROUPS[sel.g]?.id.toLowerCase()}.`}</p>
-          <p className="mt-1 text-fx-500">[[{sel.g >= 0 ? GROUPS[sel.g]!.id : "Início"}]] · 2026-11-20</p>
+        <div data-detalhe-no className="absolute bottom-2 right-2 w-56 border border-fx-700 bg-fx-900 p-2 text-xs">
+          <div className="flex justify-between"><b style={{ color: color(sel) }}>{detalheDoNo(sel).titulo}</b><button onClick={() => setSel(null)} aria-label="Fechar detalhe" className="text-fx-500">×</button></div>
+          {detalheDoNo(sel).linhas.map(l => <p key={l} className="mt-1 text-fx-300">{l}</p>)}
         </div>
       )}
         </div>
@@ -275,13 +284,13 @@ export function GraphPanel() {
         <p className="px-3 pt-2 leading-4 text-fx-500">Toda IA lê primeiro este arquivo central, assim entende o vault sem gastar milhões de tokens.</p>
         <pre className="m-3 max-h-48 overflow-auto border border-fx-800 bg-fx-black p-2 font-mono text-[11px] leading-4 text-fx-300">{buildBrainIndex(agents)}</pre>
       </Movable>
-      <Movable id="legend" className="bottom-2 left-2 w-48" title="Pastas do vault → lobos">
+      <Movable id="legend" className="bottom-2 left-2 w-48" title="Departamentos → lobos">
         {GROUPS.map((g, i) => (
-          <button key={g.id} onClick={() => setHidden(h => { const s = new Set(h); s.has(i) ? s.delete(i) : s.add(i); return s; })} className={`flex w-full justify-between px-2 py-0.5 hover:bg-fx-900 ${hidden.has(i) ? "opacity-30" : ""}`}>
-            <span style={{ color: fx(g.c) }}>● {g.id.toLowerCase()}/</span><span className="text-fx-500">{REGIONS[g.region].name.replace("Lobo ", "")}</span>
+          <button key={g.id} onClick={() => setHidden(h => { const s = new Set(h); s.has(i) ? s.delete(i) : s.add(i); return s; })} className={`flex w-full justify-between gap-2 px-2 py-0.5 hover:bg-fx-900 ${hidden.has(i) ? "opacity-30" : ""}`}>
+            <span className="truncate text-left" style={{ color: fx(g.c) }}>● {g.id}</span><span className="shrink-0 text-fx-500">{regiaoCurta(g.region)} · {g.n} {g.n === 1 ? "agente" : "agentes"}</span>
           </button>
         ))}
-        <div className="border-t border-fx-800 px-2 py-1 text-[11px] leading-4 text-fx-500">Cada pasta mora no lobo que faz esse tipo de pensamento.</div>
+        <div className="border-t border-fx-800 px-2 py-1 text-[11px] leading-4 text-fx-500">Cada departamento mora no lobo que faz esse tipo de pensamento.</div>
         <div className="border-t border-fx-800 px-2 py-1 text-fx-cyan">→ role para zoom · arraste</div>
       </Movable>
         </aside>

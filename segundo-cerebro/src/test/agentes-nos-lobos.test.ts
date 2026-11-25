@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { build } from "@/components/dash/brain-graph-model";
+import { build, detalheDoNo, regionAt } from "@/components/dash/brain-graph-model";
 import {
   buildBrainIndex,
   GROUPS,
   inRegion,
   REGIAO_DO_DEPARTAMENTO,
+  REGIONS,
   type RegionId,
 } from "@/components/dash/brain";
 import { agentesDoDepartamento } from "@/lib/cerebro/agentes-cliente";
@@ -122,6 +123,59 @@ describe("departamentos e agentes reais ocupam os lobos", () => {
     for (const g of GROUPS) expect(indice).toContain(`- ${g.id} → `);
     expect(indice).toContain("- Registre decisões e progresso na ficha do projeto (salvar_ficha).");
     expect(indice).not.toContain("wikilinks");
+  });
+});
+
+describe("agentes ficam visualmente dentro do lobo e o painel fala de agentes", () => {
+  it("todo neurônio de agente cai na região que o córtex pinta com a cor do seu lobo (regionAt)", () => {
+    const { nodes } = build();
+    const agentes = nodes.filter((n) => n.agenteId);
+    for (const n of agentes) expect(regionAt(n.tx, n.ty)).toBe(GROUPS[n.g]!.region);
+    // o recurso de cair no hub não pode virar a regra: os neurônios ficam espalhados pelo lobo
+    for (const [gi] of GROUPS.entries()) {
+      const hub = nodes.find((n) => n.hub && n.g === gi)!;
+      const noHub = agentes.filter((n) => n.g === gi && n.tx === hub.tx && n.ty === hub.ty);
+      expect(noHub).toHaveLength(0);
+    }
+  });
+
+  it("todo hub de departamento também cai na região pintada com a cor do seu lobo", () => {
+    for (const h of build().nodes.filter((n) => n.hub && n.g >= 0))
+      expect(regionAt(h.tx, h.ty)).toBe(GROUPS[h.g]!.region);
+  });
+
+  it("a raiz é o Orquestrador", () => {
+    const raiz = build().nodes[0]!;
+    expect(raiz.g).toBe(-1);
+    expect(raiz.label).toBe("Orquestrador");
+  });
+
+  it("detalheDoNo mostra agente, departamento e região, sem texto de nota do vault", () => {
+    const { nodes } = build();
+    const agente = nodes.find((n) => n.agenteId === "engineering/engineering-backend-architect")!;
+    expect(detalheDoNo(agente)).toEqual({
+      titulo: "Backend Architect",
+      linhas: ["Departamento: Desenvolvimento", "Região: Lobo parietal"],
+    });
+    const hub = nodes.find((n) => n.hub && n.label === "Produto e projetos")!;
+    expect(detalheDoNo(hub)).toEqual({
+      titulo: "Produto e projetos",
+      linhas: ["Região: Lobo frontal", `${GROUPS.find((g) => g.dep === "produto")!.n} agentes`],
+    });
+    expect(detalheDoNo(nodes[0]!)).toEqual({ titulo: "Orquestrador", linhas: [] });
+    for (const n of nodes) {
+      const d = detalheDoNo(n);
+      const texto = [d.titulo, ...d.linhas].join(" ");
+      expect(texto).not.toMatch(/\.md|Backlinks|Tag #|\[\[|nota/);
+      if (n.g >= 0) expect(d.linhas).toContain(`Região: ${REGIONS[GROUPS[n.g]!.region].name}`);
+    }
+  });
+
+  it("brain.md manda usar os agentes do departamento, não ler pastas", () => {
+    const indice = buildBrainIndex([]);
+    expect(indice).toContain("- Use os agentes do departamento indicado pelo orquestrador.");
+    expect(indice).not.toContain("Leia apenas as pastas");
+    expect(indice).not.toContain("pastas");
   });
 });
 
