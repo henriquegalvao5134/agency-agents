@@ -2,6 +2,9 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { agentSnapshot, saveAgentSnapshot, serverAgentSnapshot, subscribeAgents } from "@/lib/brain-agent-store";
 import { agentIsWorking, isTaskActive, type BrainTask } from "@/lib/brain-routing";
 import { TaskMonitor } from "./TaskMonitor";
+import { AgenciaLayer } from "./AgenciaLayer";
+import { estadoAgencia } from "@/lib/cerebro/agencia";
+import divisoes from "@/lib/cerebro/divisoes.json";
 import { useAtividade, useProvedores } from "@/lib/cerebro/use-atividade";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -59,7 +62,11 @@ export function GraphPanel() {
   const [tasks, setTasks] = useState<BrainTask[]>([]);
   const [delegate, setDelegate] = useState(true);
   // Uma entrada de IA também acende quando essa ferramenta registrou atividade real no núcleo (Claude Code, etc.).
-  const ativosNoNucleo = useAtividade().data?.ativos ?? [];
+  const atividade = useAtividade().data;
+  const ativosNoNucleo = atividade?.ativos ?? [];
+  // Agência GD3 e skills de trabalho: acendem pelas delegações recentes do orquestrador.
+  const estado = estadoAgencia(atividade, divisoes);
+  const orquestrador = cofre.find(p => p.papel === "orquestrador");
   const busyMap = Object.fromEntries(agents.map(a => [a.id, agentIsWorking(tasks, a.id) || ativosNoNucleo.includes(a.id)]));
   const activeTasks = tasks.filter(isTaskActive);
   const runningSkills = SKILLS.filter(s => activeTasks.some(t => t.phase === "running" && t.skillId === s.id));
@@ -198,6 +205,7 @@ export function GraphPanel() {
             <text x={PORT_X + 15} y={portY(agents.length - 1, agents.length) + 39} textAnchor="middle" fontSize={9} fontWeight={600} fontFamily="var(--font-sans)" fill={fx("cyan")}>+ Adicionar IA</text>
           </g>
           <text x={PORT_X + 15} y={portY(0, agents.length) - 26} fontSize={8} fontWeight={600} letterSpacing={1.5} textAnchor="middle" fontFamily="var(--font-sans)" fill={fx("500")}>ENTRADAS DE IA</text>
+          <AgenciaLayer estado={estado} core={{ x: CORE.x + brainOffset.x, y: CORE.y + brainOffset.y }} />
           <g data-brain-volume transform={`translate(${brainOffset.x},${brainOffset.y})`}>
           {/* Region glow: soft radial light; brightness = how recently a skill activated that region */}
           {(Object.keys(REGIONS) as RegionId[]).map(id => { const R = REGIONS[id]; const t0 = regionAct.current.get(id); const act = t0 ? Math.max(0, 1 - (performance.now() - t0) / 2600) : 0; const lit = runningSkills.some(s => s.path.includes(id)) || skill?.path.includes(id);
@@ -222,7 +230,7 @@ export function GraphPanel() {
                 <circle r={26} fill={fx(ag.c)} fillOpacity={.15} filter="url(#soft)" />
                 <circle r={19} fill="none" stroke={fx(ag.c)} strokeWidth={1} strokeDasharray="3 4" className="core-spin" />
                 <circle r={15} fill="none" stroke={fx("paper")} strokeOpacity={.6} strokeWidth={.8} strokeDasharray="10 5" className="core-spin-rev" />
-                <text textAnchor="middle" y={-30} fontSize={8} fontWeight={600} letterSpacing={1.2} fontFamily="var(--font-sans)" fill={fx(ag.c)}>ORQUESTRADOR · brain.md</text>
+                <text textAnchor="middle" y={-30} fontSize={8} fontWeight={600} letterSpacing={1.2} fontFamily="var(--font-sans)" fill={fx(ag.c)}>{`ORQUESTRADOR · ${orquestrador ? orquestrador.nome : "sem IA no cofre"}${estado.orquestradorAtivo ? " · delegando" : ""}`}</text>
                 <text textAnchor="middle" dy={3} fontSize={7} fontWeight={700} fontFamily="var(--font-mono)" fill={fx("black")}>IA</text></g>}
               {n.hub && n.id !== 0 && <g><text textAnchor="middle" y={-11} fontSize={9.5} fontWeight={600} paintOrder="stroke" stroke={fx("black")} strokeWidth={3} fontFamily="var(--font-sans)" fill={color(n)}>{n.label}</text></g>}
             </g>
