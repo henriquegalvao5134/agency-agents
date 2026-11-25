@@ -3,13 +3,22 @@ import "./lib/error-capture";
 import { consumeLastCapturedError, logError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { handleLiveRequest } from "./lib/live-relay.server";
-import { handleMcpRequest } from "./lib/cerebro/mcp.server";
+import { definirAmbiente } from "./lib/cerebro/ambiente.server";
 import { handleCerebroHttp } from "./lib/cerebro/http.server";
-import { cerebroEnv, supabaseStore } from "./lib/cerebro/store.server";
+import { handleMcpRequest } from "./lib/cerebro/mcp.server";
+import { nucleoDoAmbiente } from "./lib/cerebro/nucleo.server";
+import { handlePainel } from "./lib/cerebro/painel.server";
 
-function nucleo() {
-  const env = cerebroEnv();
-  return { store: env ? supabaseStore(env) : null, token: env?.token ?? null };
+/** Cabeçalhos de segurança em todas as respostas normais (não no WebSocket do Jarvis). */
+function protegido(response: Response): Response {
+  if (response.status === 101) return response;
+  const r = new Response(response.body, response);
+  r.headers.set("x-content-type-options", "nosniff");
+  r.headers.set("x-frame-options", "DENY");
+  r.headers.set("referrer-policy", "strict-origin-when-cross-origin");
+  r.headers.set("strict-transport-security", "max-age=31536000; includeSubDomains");
+  r.headers.set("permissions-policy", "camera=(), geolocation=(), microphone=(self)");
+  return r;
 }
 
 type ServerEntry = {
@@ -59,13 +68,18 @@ function isH3SwallowedErrorBody(body: string): boolean {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      definirAmbiente(env);
       const pathname = new URL(request.url).pathname;
       if (pathname === "/api/live") return handleLiveRequest(request);
-      if (pathname === "/api/mcp" || pathname.startsWith("/api/mcp/")) { const n = nucleo(); return await handleMcpRequest(request, n.store, n.token); }
-      if (pathname.startsWith("/api/cerebro/")) { const n = nucleo(); return await handleCerebroHttp(request, n.store, n.token); }
+      if (pathname === "/api/mcp" || pathname.startsWith("/api/mcp/"))
+        return protegido(await handleMcpRequest(request, nucleoDoAmbiente()));
+      if (pathname.startsWith("/api/cerebro/"))
+        return protegido(await handleCerebroHttp(request, nucleoDoAmbiente()));
+      if (pathname.startsWith("/api/painel/"))
+        return protegido(await handlePainel(request, nucleoDoAmbiente()));
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      return protegido(await normalizeCatastrophicSsrResponse(response));
     } catch (error) {
       logError(error);
       return new Response(renderErrorPage(), {

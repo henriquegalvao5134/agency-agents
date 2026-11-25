@@ -57,3 +57,23 @@ export type Atividade = {
   limites: { limite_5h_pct: number | null; limite_7d_pct: number | null; em: string | null };
   ativos: string[];
 };
+
+export const FORNECEDORES = ["anthropic", "openai", "xai", "google"] as const;
+export const PAPEIS = ["orquestrador", "planejador", "executor", ""] as const;
+
+/** Cadastro de uma IA no cofre. A chave só entra; nunca sai do servidor. */
+export const NovoProvedor = z.object({
+  nome: z.string().trim().min(1).max(60),
+  fornecedor: z.enum(FORNECEDORES),
+  modelo: z.string().trim().min(1).max(80),
+  papel: z.enum(PAPEIS).default(""),
+  cor: z.string().max(20).default("cyan"),
+  chave: z.string().trim().min(10).max(400),
+});
+export type NovoProvedor = z.infer<typeof NovoProvedor>;
+/** O que o painel enxerga de uma IA cadastrada: sem a chave. */
+export type Provedor = Omit<NovoProvedor, "chave"> & {
+  id: string;
+  final_chave: string;
+  criado_em: string;
+};

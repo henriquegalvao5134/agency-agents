@@ -4,11 +4,21 @@ O núcleo mora na própria plataforma (`/api/mcp`). Toda IA conectada lê e grav
 e tudo o que ela faz aparece no painel **Núcleo ao vivo**.
 
 ## 1. Configurar o núcleo (uma vez)
-1. Crie o banco do núcleo (projeto Supabase próprio) e rode `cerebro/sql/001_nucleo.sql` no SQL Editor.
-2. Na Cloudflare, no Worker `henriquegalvao5134-agency-agents-segundo-cerebro` → Settings → Variables and secrets, adicione como **Secret**:
-   - `CEREBRO_SUPABASE_URL` — URL do projeto Supabase do núcleo
-   - `CEREBRO_SUPABASE_SERVICE_KEY` — chave `service_role` desse projeto
-   - `CEREBRO_TOKEN` — um segredo longo e aleatório (é a senha de acesso ao cérebro)
+1. Banco: D1 da Cloudflare chamado `cerebro`, ligado ao Worker como `CEREBRO_DB` (ver `wrangler.jsonc`).
+   Tabelas: `cerebro/migrations/0001_nucleo.sql`.
+2. No Worker `henriquegalvao5134-agency-agents-segundo-cerebro` → Settings → Variables and secrets, como **Secret**:
+   - `CEREBRO_TOKEN` — segredo longo e aleatório: é o acesso das IAs (MCP e ganchos)
+   - `CEREBRO_SENHA_PAINEL` — senha para entrar no painel do site
+   - `CEREBRO_CHAVE_MESTRA` — base64 de 32 bytes aleatórios: cifra as chaves de API do cofre e assina o login.
+     Se for trocada, as chaves já cadastradas deixam de abrir (cadastre de novo).
+3. Entre no painel (seção "Núcleo ao vivo"), abra o **Cofre de IAs** e cadastre as IAs com as chaves.
+   Marque uma (modelo barato, ex. Haiku) com o papel **Orquestrador**.
+
+### Como o trabalho flui
+Você trabalha no Claude Code → ele chama a ferramenta `orquestrar` do cérebro → o orquestrador (IA do cofre)
+escolhe área, subagentes do catálogo e fluxo (código → skills superpowers) e devolve as instruções →
+o Claude Code executa com a sua assinatura (planeja com modelo alto, executa com menor) → tudo é registrado
+e aparece no cérebro e no painel.
 
 ## 2. Claude Code (desktop e VS Code)
 Conexão MCP (memória e registro):

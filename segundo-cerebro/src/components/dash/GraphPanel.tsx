@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { askBrainAgent, routeBrainAgent, BRAIN_MODELS } from "@/lib/brain-ai.functions";
 import { agentIsWorking, isTaskActive, validateDelegation, type BrainTask } from "@/lib/brain-routing";
 import { TaskMonitor } from "./TaskMonitor";
-import { useAtividade } from "@/lib/cerebro/use-atividade";
+import { useAtividade, useProvedores } from "@/lib/cerebro/use-atividade";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { FX } from "./Panel";
@@ -49,7 +49,10 @@ export function GraphPanel() {
   const regionAct = useRef(new Map<RegionId, number>());
   const [skill, setSkill] = useState<(typeof SKILLS)[number] | null>(null);
   const timers = useRef<number[]>([]);
-  const agents = useSyncExternalStore(subscribeAgents, agentSnapshot, serverAgentSnapshot);
+  const agentesLocais = useSyncExternalStore(subscribeAgents, agentSnapshot, serverAgentSnapshot);
+  // IAs cadastradas no cofre do núcleo (com chave cifrada no servidor) também viram entradas do cérebro.
+  const { data: cofre = [] } = useProvedores();
+  const agents = [...agentesLocais, ...cofre.filter(p => !agentesLocais.some(a => a.id === `cofre:${p.id}`)).map(p => ({ id: `cofre:${p.id}`, name: p.nome, vendor: p.fornecedor, c: p.cor, model: `${p.fornecedor}/${p.modelo}`, kind: "api" as const }))];
   const [agent, setAgent] = useState<AgentId>("claude-code");
   const [log, setLog] = useState<string[]>([]);
   const [menu, setMenu] = useState(false);
@@ -66,7 +69,7 @@ export function GraphPanel() {
   const [answers, setAnswers] = useState<Record<string, { ok: boolean; text: string }>>({});
   const ask = useServerFn(askBrainAgent);
   const route = useServerFn(routeBrainAgent);
-  const saveAgents = saveAgentSnapshot;
+  const saveAgents = (lista: Agent[]) => saveAgentSnapshot(lista.filter(a => !a.id.startsWith("cofre:")));
   const ag = agents.find(a => a.id === agent) ?? agents[0] ?? DEFAULT_AGENTS[0]!;
   const online = new Set(agents.filter(a => a.model).map(a => a.id));
   // Fire a skill: light each region of its path in order and launch a burst of synaptic pulses there.

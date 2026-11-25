@@ -80,7 +80,8 @@ try {
     const contexto = ficha
       ? `## Ficha de retomada do Segundo Cérebro (${ficha.projeto})\nTítulo: ${ficha.titulo}\nObjetivo: ${ficha.objetivo}\nEtapa atual: ${ficha.etapa_atual}\nPróximo passo: ${ficha.proximo_passo}\n\n### Decisões\n${ficha.decisoes}\n\n### Plano\n${ficha.plano}\n\n### Arquivos\n${ficha.arquivos}\n\n(Atualizada por ${ficha.atualizado_por} em ${ficha.atualizado_em}.) Continue daqui e mantenha a ficha atualizada com a ferramenta salvar_ficha do MCP "cerebro".`
       : `O projeto "${projeto}" ainda não tem ficha no Segundo Cérebro. Quando houver objetivo e plano claros, crie com a ferramenta salvar_ficha do MCP "cerebro" (projeto: "${projeto}").`;
-    process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: contexto } }));
+    const regra = `\n\nRegra do Segundo Cérebro: para qualquer trabalho novo de cliente ou projeto (CRM, site, sistema, campanha, conteúdo, segurança), chame primeiro a ferramenta orquestrar do MCP "cerebro" (pedido, projeto "${projeto}", ferramenta "claude-code") e siga os subagentes, o fluxo e a divisão de modelos que ela devolver.`;
+    process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: contexto + regra } }));
   } else if (evento === "UserPromptSubmit") {
     const ctx = estado.contexto_pct ?? 0, l5 = estado.limite_5h_pct ?? 0, l7 = estado.limite_7d_pct ?? 0;
     const motivos = [];

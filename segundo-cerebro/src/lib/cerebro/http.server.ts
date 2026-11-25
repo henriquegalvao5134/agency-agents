@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { tokenConfere } from "./mcp.server";
-import type { CerebroStore } from "./store.server";
+import type { Nucleo } from "./nucleo.server";
 import { Evento } from "./types";
 
 /**
@@ -12,12 +12,9 @@ import { Evento } from "./types";
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 
-export async function handleCerebroHttp(
-  request: Request,
-  store: CerebroStore | null,
-  token: string | null,
-): Promise<Response> {
-  if (!store || !token) return json({ erro: "Núcleo não configurado." }, 503);
+export async function handleCerebroHttp(request: Request, n: Nucleo | null): Promise<Response> {
+  if (!n) return json({ erro: "Núcleo não configurado." }, 503);
+  const { store, token } = n;
   const header = request.headers.get("authorization") ?? "";
   if (
     !tokenConfere(header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "", token)

@@ -1,5 +1,6 @@
 import { Activity, AlertTriangle, Gauge, PlugZap, Radio } from "lucide-react";
-import { useAtividade } from "@/lib/cerebro/use-atividade";
+import { useAtividade, useSessao } from "@/lib/cerebro/use-atividade";
+import { CofreIAs, EntrarPainel } from "./CofreIAs";
 
 const fmt = (n: number) =>
   n >= 1_000_000
@@ -45,33 +46,46 @@ function Barra({ rotulo, pct }: { rotulo: string; pct: number | null }) {
 
 /** Painel ao vivo do núcleo: quem está trabalhando, o que fez e quanto gastou. Só mostra dados reais do registro. */
 export function NucleoPanel() {
-  const { data, isLoading } = useAtividade();
+  const sessao = useSessao();
+  if (sessao.data && !sessao.data.configurado)
+    return (
+      <div className="flex items-start gap-3 border-y border-fx-800 py-6 text-sm text-fx-300">
+        <PlugZap className="mt-0.5 size-4 shrink-0 text-fx-yellow" />
+        <p>
+          O núcleo ainda não está ligado ao banco da Cloudflare. Assim que o banco e os segredos
+          forem configurados, este painel passa a mostrar a atividade e o consumo reais de cada IA
+          conectada.
+        </p>
+      </div>
+    );
+  if (sessao.data && !sessao.data.logado) return <EntrarPainel />;
+  return (
+    <>
+      <AtividadeAoVivo />
+      <CofreIAs />
+    </>
+  );
+}
+
+function AtividadeAoVivo() {
+  const { data, isLoading, error } = useAtividade();
+  if (error)
+    return (
+      <p className="flex gap-2 border-y border-fx-800 py-6 text-xs text-fx-red">
+        <AlertTriangle className="size-4 shrink-0" />
+        {error.message}
+      </p>
+    );
   if (isLoading || !data)
     return (
       <div role="status" className="border-y border-fx-800 py-8 text-sm text-fx-300">
         Lendo o núcleo…
       </div>
     );
-  if (!data.configurado)
-    return (
-      <div className="flex items-start gap-3 border-y border-fx-800 py-6 text-sm text-fx-300">
-        <PlugZap className="mt-0.5 size-4 shrink-0 text-fx-yellow" />
-        <p>
-          O núcleo ainda não está ligado a um banco próprio. Assim que o banco for configurado, este
-          painel passa a mostrar a atividade e o consumo reais de cada IA conectada.
-        </p>
-      </div>
-    );
   const totalSemana = data.semana.tokens || 1;
   return (
     <div className="grid gap-6 border-y border-fx-800 py-5 lg:grid-cols-12">
       <div className="space-y-5 lg:col-span-4">
-        {data.erro && (
-          <p className="flex gap-2 text-xs text-fx-red">
-            <AlertTriangle className="size-4 shrink-0" />
-            {data.erro}
-          </p>
-        )}
         <div>
           <h3 className="mb-2 flex items-center gap-2 text-sm text-fx-paper">
             <Radio className="size-4 text-fx-green" />

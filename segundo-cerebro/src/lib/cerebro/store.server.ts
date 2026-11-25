@@ -1,6 +1,10 @@
-import type { Atividade, ConsumoAgente, Evento, EventoSalvo, Ficha } from "./types";
+import type { D1Database } from "./ambiente.server";
+import type { Atividade, ConsumoAgente, Evento, EventoSalvo, Ficha, Provedor } from "./types";
 
-/** Onde o núcleo guarda memória e registro. Interface pequena para poder trocar de banco (Supabase hoje, VPS depois). */
+/** Provedor como guardado no banco: com a chave cifrada (nunca devolvida ao navegador). */
+export type ProvedorCifrado = Provedor & { chave_cifrada: string; iv: string };
+
+/** Onde o núcleo guarda memória, registro e cofre. Interface pequena para poder trocar de banco no futuro. */
 export interface CerebroStore {
   lerFicha(projeto: string): Promise<Ficha | null>;
   salvarFicha(ficha: Ficha): Promise<Ficha>;
@@ -12,73 +16,123 @@ export interface CerebroStore {
   >;
   registrarEvento(evento: Evento): Promise<void>;
   eventosDesde(desdeIso: string, limite?: number): Promise<EventoSalvo[]>;
+  listarProvedores(): Promise<ProvedorCifrado[]>;
+  salvarProvedor(p: ProvedorCifrado): Promise<void>;
+  removerProvedor(id: string): Promise<void>;
 }
 
-export type CerebroEnv = { url: string; chave: string; token: string };
-
-/** Lê a configuração do núcleo. Nada aqui vem da Lovable. */
-export function cerebroEnv(): CerebroEnv | null {
-  const url = process.env["CEREBRO_SUPABASE_URL"]?.replace(/\/+$/, "");
-  const chave = process.env["CEREBRO_SUPABASE_SERVICE_KEY"];
-  const token = process.env["CEREBRO_TOKEN"];
-  if (!url || !chave || !token) return null;
-  return { url, chave, token };
-}
-
-/** Implementação via API REST do Supabase (PostgREST), sem SDK, para rodar igual na Cloudflare e na VPS. */
-export function supabaseStore(
-  env: Pick<CerebroEnv, "url" | "chave">,
-  f: typeof fetch = fetch,
-): CerebroStore {
-  const base = `${env.url}/rest/v1`;
-  const headers = {
-    apikey: env.chave,
-    Authorization: `Bearer ${env.chave}`,
-    "Content-Type": "application/json",
-  };
-  async function req<T>(path: string, init: RequestInit = {}): Promise<T> {
-    const res = await f(`${base}${path}`, {
-      ...init,
-      headers: { ...headers, ...(init.headers as Record<string, string> | undefined) },
-    });
-    if (!res.ok)
-      throw new Error(
-        `Banco do núcleo respondeu ${res.status}: ${(await res.text()).slice(0, 300)}`,
-      );
-    const text = await res.text();
-    return (text ? JSON.parse(text) : null) as T;
+const CAMPOS_FICHA = [
+  "projeto",
+  "titulo",
+  "objetivo",
+  "decisoes",
+  "plano",
+  "etapa_atual",
+  "proximo_passo",
+  "arquivos",
+  "atualizado_por",
+] as const;
+const CAMPOS_EVENTO = [
+  "ferramenta",
+  "sessao",
+  "projeto",
+  "agente",
+  "tipo",
+  "descricao",
+  "modelo",
+  "tokens_entrada",
+  "tokens_saida",
+  "tokens_cache",
+  "custo_usd",
+  "limite_5h_pct",
+  "limite_7d_pct",
+  "meta",
+] as const;
+const CAMPOS_PROVEDOR = [
+  "id",
+  "nome",
+  "fornecedor",
+  "modelo",
+  "papel",
+  "cor",
+  "chave_cifrada",
+  "iv",
+  "final_chave",
+] as const;
+const agoraIso = () => new Date().toISOString();
+const lerMeta = (m: string) => {
+  try {
+    return JSON.parse(m) as Record<string, unknown>;
+  } catch {
+    return {};
   }
+};
+
+/** Implementação no D1 da Cloudflare (SQLite). */
+export function d1Store(db: D1Database): CerebroStore {
   return {
     async lerFicha(projeto) {
-      const rows = await req<Ficha[]>(
-        `/cerebro_fichas?projeto=eq.${encodeURIComponent(projeto)}&limit=1`,
-      );
-      return rows[0] ?? null;
+      return db.prepare("SELECT * FROM fichas WHERE projeto = ?").bind(projeto).first<Ficha>();
     },
     async salvarFicha(ficha) {
-      const rows = await req<Ficha[]>(`/cerebro_fichas?on_conflict=projeto`, {
-        method: "POST",
-        headers: { Prefer: "resolution=merge-duplicates,return=representation" },
-        body: JSON.stringify({ ...ficha, atualizado_em: new Date().toISOString() }),
-      });
-      return rows[0] ?? ficha;
+      const atualizar = CAMPOS_FICHA.filter((c) => c !== "projeto")
+        .map((c) => `${c} = excluded.${c}`)
+        .join(", ");
+      await db
+        .prepare(
+          `INSERT INTO fichas (${CAMPOS_FICHA.join(", ")}, atualizado_em) VALUES (${CAMPOS_FICHA.map(() => "?").join(", ")}, ?) ON CONFLICT(projeto) DO UPDATE SET ${atualizar}, atualizado_em = excluded.atualizado_em`,
+        )
+        .bind(...CAMPOS_FICHA.map((c) => ficha[c]), agoraIso())
+        .run();
+      return ficha;
     },
     async listarFichas() {
-      return req(
-        `/cerebro_fichas?select=projeto,titulo,etapa_atual,proximo_passo,atualizado_por,atualizado_em&order=atualizado_em.desc&limit=100`,
-      );
+      const r = await db
+        .prepare(
+          "SELECT projeto, titulo, etapa_atual, proximo_passo, atualizado_por, atualizado_em FROM fichas ORDER BY atualizado_em DESC LIMIT 100",
+        )
+        .all<Ficha>();
+      return r.results;
     },
-    async registrarEvento(evento) {
-      await req(`/cerebro_eventos`, {
-        method: "POST",
-        headers: { Prefer: "return=minimal" },
-        body: JSON.stringify(evento),
-      });
+    async registrarEvento(e) {
+      const valores = CAMPOS_EVENTO.map((c) =>
+        c === "meta" ? JSON.stringify(e.meta ?? {}) : e[c],
+      );
+      await db
+        .prepare(
+          `INSERT INTO eventos (${CAMPOS_EVENTO.join(", ")}, criado_em) VALUES (${CAMPOS_EVENTO.map(() => "?").join(", ")}, ?)`,
+        )
+        .bind(...valores, agoraIso())
+        .run();
     },
     async eventosDesde(desdeIso, limite = 1000) {
-      return req<EventoSalvo[]>(
-        `/cerebro_eventos?criado_em=gte.${encodeURIComponent(desdeIso)}&order=criado_em.desc&limit=${limite}`,
-      );
+      const r = await db
+        .prepare(
+          "SELECT * FROM eventos WHERE criado_em >= ? ORDER BY criado_em DESC, id DESC LIMIT ?",
+        )
+        .bind(desdeIso, limite)
+        .all<Omit<EventoSalvo, "meta"> & { meta: string }>();
+      return r.results.map((e) => ({ ...e, meta: lerMeta(e.meta) }));
+    },
+    async listarProvedores() {
+      const r = await db
+        .prepare("SELECT * FROM provedores ORDER BY criado_em")
+        .all<ProvedorCifrado>();
+      return r.results;
+    },
+    async salvarProvedor(p) {
+      const atualizar = CAMPOS_PROVEDOR.filter((c) => c !== "id")
+        .map((c) => `${c} = excluded.${c}`)
+        .join(", ");
+      await db
+        .prepare(
+          `INSERT INTO provedores (${CAMPOS_PROVEDOR.join(", ")}) VALUES (${CAMPOS_PROVEDOR.map(() => "?").join(", ")}) ON CONFLICT(id) DO UPDATE SET ${atualizar}`,
+        )
+        .bind(...CAMPOS_PROVEDOR.map((c) => p[c]))
+        .run();
+    },
+    async removerProvedor(id) {
+      await db.prepare("DELETE FROM provedores WHERE id = ?").bind(id).run();
     },
   };
 }
@@ -91,15 +145,15 @@ export function resumirAtividade(eventos: EventoSalvo[], agora = new Date()): At
   inicioHoje.setHours(0, 0, 0, 0);
   const ativosDesde = agora.getTime() - 3 * 60_000;
   const porAgente = new Map<string, ConsumoAgente>();
-  const hoje = { tokens: 0, custo_usd: 0 },
-    semana = { tokens: 0, custo_usd: 0 };
+  const hoje = { tokens: 0, custo_usd: 0 };
+  const semana = { tokens: 0, custo_usd: 0 };
   let limites: Atividade["limites"] = { limite_5h_pct: null, limite_7d_pct: null, em: null };
   const ativos = new Set<string>();
   const vistas = new Set<string>();
   for (const e of eventos) {
-    const t = totalTokens(e),
-      custo = Number(e.custo_usd) || 0,
-      quando = new Date(e.criado_em);
+    const t = totalTokens(e);
+    const custo = Number(e.custo_usd) || 0;
+    const quando = new Date(e.criado_em);
     semana.tokens += t;
     semana.custo_usd += custo;
     if (quando >= inicioHoje) {

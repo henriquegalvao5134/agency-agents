@@ -1,5 +1,8 @@
 import { z } from "zod";
-import type { CerebroStore } from "./store.server";
+import { iguais } from "./cofre.server";
+import type { Nucleo } from "./nucleo.server";
+import { roteadorDoCofre } from "./nucleo.server";
+import { decidir, lerAgente, montarInstrucoes } from "./orquestrador.server";
 import { Evento, Ficha, TIPOS_EVENTO } from "./types";
 
 /**
@@ -10,6 +13,7 @@ import { Evento, Ficha, TIPOS_EVENTO } from "./types";
 const PROTOCOLOS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
 const INSTRUCOES = [
   "Você está ligado ao Segundo Cérebro da AutoGTEC/GD3. A memória do trabalho mora aqui, não no chat.",
+  "0) Para qualquer trabalho de cliente/projeto (CRM, site, campanha, conteúdo, segurança), chame orquestrar primeiro: ele devolve os subagentes, o fluxo e a divisão de modelos.",
   "1) Ao começar num projeto: chame ler_ficha (ou listar_fichas se não souber o slug) e continue de onde parou.",
   "2) A cada etapa relevante concluída, e SEMPRE antes de a conversa ficar longa ou o limite acabar: chame salvar_ficha com decisões, plano, etapa atual e próximo passo.",
   "3) Registre o que fez com registrar_evento (tipo inicio/etapa/delegacao/fim) para aparecer no painel.",
@@ -18,6 +22,34 @@ const INSTRUCOES = [
 
 const textoCampo = (descricao: string) => ({ type: "string", description: descricao });
 const FERRAMENTAS = [
+  {
+    name: "orquestrar",
+    description:
+      "Orquestrador da agência GD3. Envie o pedido de trabalho; ele identifica a área, escolhe os subagentes do catálogo, o fluxo (código → skills superpowers) e a divisão de modelos (planejar com modelo alto, executar com menor), e devolve tudo junto com a ficha do projeto. Você executa.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        pedido: textoCampo("O que precisa ser feito, com as palavras do usuário"),
+        projeto: textoCampo("Slug do projeto/cliente, se houver"),
+        ferramenta: textoCampo("Quem está chamando: claude-code, claude-desktop, chatgpt..."),
+      },
+      required: ["pedido"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "buscar_agente",
+    description:
+      "Devolve as instruções completas de um agente do catálogo (id vindo do orquestrar), para usar como prompt de um subagente.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: textoCampo("Id do agente, ex.: engineering/engineering-backend-architect"),
+      },
+      required: ["id"],
+      additionalProperties: false,
+    },
+  },
   {
     name: "listar_fichas",
     description:
@@ -97,8 +129,41 @@ const erro = (id: Rpc["id"], code: number, message: string) => ({
 });
 const texto = (t: string, isError = false) => ({ content: [{ type: "text", text: t }], isError });
 
-async function chamarFerramenta(store: CerebroStore, nome: string, args: Record<string, unknown>) {
+async function chamarFerramenta(n: Nucleo, nome: string, args: Record<string, unknown>) {
+  const store = n.store;
   switch (nome) {
+    case "orquestrar": {
+      const { pedido, projeto, ferramenta } = z
+        .object({
+          pedido: z.string().min(3).max(4000),
+          projeto: z.string().max(80).default(""),
+          ferramenta: z.string().max(60).default("desconhecida"),
+        })
+        .parse(args);
+      const decisao = await decidir(pedido, await roteadorDoCofre(n), n.f);
+      const ficha = projeto ? await store.lerFicha(projeto) : null;
+      await store.registrarEvento(
+        Evento.parse({
+          ferramenta,
+          projeto,
+          agente: "orquestrador",
+          tipo: "delegacao",
+          descricao:
+            `${decisao.area}: ${decisao.agentes.map((a) => a.nome).join(", ") || "sem agente"} — ${pedido}`.slice(
+              0,
+              2000,
+            ),
+          modelo: decisao.modelo,
+          tokens_entrada: decisao.uso?.tokens_entrada ?? 0,
+          tokens_saida: decisao.uso?.tokens_saida ?? 0,
+          tokens_cache: decisao.uso?.tokens_cache ?? 0,
+        }),
+      );
+      return texto(montarInstrucoes(pedido, decisao, ficha, projeto));
+    }
+    case "buscar_agente": {
+      return texto(await lerAgente(z.string().min(1).parse(args["id"]), n.f));
+    }
     case "listar_fichas": {
       const fichas = await store.listarFichas();
       return texto(
@@ -143,7 +208,7 @@ class RpcError extends Error {
   }
 }
 
-async function responder(store: CerebroStore, msg: Rpc) {
+async function responder(n: Nucleo, msg: Rpc) {
   switch (msg.method) {
     case "initialize": {
       const pedida =
@@ -151,7 +216,7 @@ async function responder(store: CerebroStore, msg: Rpc) {
       return ok(msg.id, {
         protocolVersion: PROTOCOLOS.includes(pedida) ? pedida : PROTOCOLOS[0],
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: "segundo-cerebro-autogtec", version: "0.1.0" },
+        serverInfo: { name: "segundo-cerebro-autogtec", version: "0.2.0" },
         instructions: INSTRUCOES,
       });
     }
@@ -163,7 +228,7 @@ async function responder(store: CerebroStore, msg: Rpc) {
       const nome = String(msg.params?.["name"] ?? "");
       const args = (msg.params?.["arguments"] ?? {}) as Record<string, unknown>;
       try {
-        return ok(msg.id, await chamarFerramenta(store, nome, args));
+        return ok(msg.id, await chamarFerramenta(n, nome, args));
       } catch (e) {
         if (e instanceof RpcError) return erro(msg.id, e.code, e.message);
         const detalhe =
@@ -190,31 +255,18 @@ export function tokenDaRequisicao(request: Request): string {
     : "";
 }
 
-export function tokenConfere(recebido: string, esperado: string): boolean {
-  if (!recebido || recebido.length !== esperado.length) return false;
-  let diff = 0;
-  for (let i = 0; i < esperado.length; i++) diff |= recebido.charCodeAt(i) ^ esperado.charCodeAt(i);
-  return diff === 0;
-}
+export const tokenConfere = iguais;
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 
-export async function handleMcpRequest(
-  request: Request,
-  store: CerebroStore | null,
-  token: string | null,
-): Promise<Response> {
-  if (!store || !token)
+export async function handleMcpRequest(request: Request, n: Nucleo | null): Promise<Response> {
+  if (!n)
     return json(
-      erro(
-        null,
-        -32000,
-        "Núcleo não configurado: faltam CEREBRO_SUPABASE_URL, CEREBRO_SUPABASE_SERVICE_KEY ou CEREBRO_TOKEN.",
-      ),
+      erro(null, -32000, "Núcleo não configurado na Cloudflare (banco D1 ou segredos faltando)."),
       503,
     );
-  if (!tokenConfere(tokenDaRequisicao(request), token))
+  if (!tokenConfere(tokenDaRequisicao(request), n.token))
     return json(erro(null, -32001, "Não autorizado."), 401);
   if (request.method === "GET")
     return new Response(null, { status: 405, headers: { allow: "POST" } });
@@ -235,7 +287,7 @@ export async function handleMcpRequest(
       continue;
     }
     if (msg.id === undefined) continue; // notificação (ex.: notifications/initialized): não tem resposta
-    respostas.push(await responder(store, msg));
+    respostas.push(await responder(n, msg));
   }
   if (!respostas.length) return new Response(null, { status: 202 });
   return json(Array.isArray(corpo) ? respostas : respostas[0]);
