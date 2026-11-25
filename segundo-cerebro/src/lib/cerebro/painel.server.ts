@@ -115,10 +115,10 @@ export async function handlePainel(request: Request, n: Nucleo | null): Promise<
           tokens_entrada: decisao.uso?.tokens_entrada ?? 0,
           tokens_saida: decisao.uso?.tokens_saida ?? 0,
           tokens_cache: decisao.uso?.tokens_cache ?? 0,
+          meta: { area: decisao.area, agentes: decisao.agentes.map(a => a.id) },
           custo_usd: 0,
           limite_5h_pct: null,
           limite_7d_pct: null,
-          meta: {},
         });
       }
       const sistema = [

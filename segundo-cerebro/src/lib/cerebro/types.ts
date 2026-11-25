@@ -56,6 +56,10 @@ export type Atividade = {
   semana: { tokens: number; custo_usd: number };
   limites: { limite_5h_pct: number | null; limite_7d_pct: number | null; em: string | null };
   ativos: string[];
+  /** Delegações recentes do orquestrador (últimos 15 min): área e ids dos agentes do catálogo escolhidos. */
+  delegacoes: { criado_em: string; ferramenta: string; area: string; agentes: string[] }[];
+  /** Houve ficha salva (checkpoint) nos últimos 2 minutos. */
+  salvouAgora: boolean;
 };
 
 export const FORNECEDORES = ["anthropic", "openai", "xai", "google"] as const;

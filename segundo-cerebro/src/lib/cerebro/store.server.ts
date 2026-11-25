@@ -188,8 +188,20 @@ export function resumirAtividade(eventos: EventoSalvo[], agora = new Date()): At
       if (quando.getTime() >= ativosDesde && e.tipo !== "fim") ativos.add(e.ferramenta);
     }
   }
+  const delegacoes = eventos
+    .filter(e => e.tipo === "delegacao" && agora.getTime() - new Date(e.criado_em).getTime() < 15 * 60_000)
+    .slice(0, 10)
+    .map(e => ({
+      criado_em: e.criado_em,
+      ferramenta: e.ferramenta,
+      area: typeof e.meta["area"] === "string" ? e.meta["area"] : "",
+      agentes: Array.isArray(e.meta["agentes"]) ? e.meta["agentes"].filter((x): x is string => typeof x === "string") : [],
+    }));
+  const salvouAgora = eventos.some(e => e.tipo === "checkpoint" && agora.getTime() - new Date(e.criado_em).getTime() < 2 * 60_000);
   return {
     configurado: true,
+    delegacoes,
+    salvouAgora,
     eventos: eventos.slice(0, 50).map(({ meta: _meta, ...resto }) => resto),
     consumo: [...porAgente.values()].sort((a, b) => b.tokens - a.tokens),
     hoje,
