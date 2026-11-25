@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BrainCircuit, Network, Blocks, Code2, CircleHelp, Palette, SlidersHorizontal, ArrowUpRight, Megaphone, Newspaper, BookOpen } from "lucide-react";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { newsQueryOptions } from "@/lib/news-query";
 import { Button } from "@/components/ui/button";
 import { GraphPanel } from "@/components/dash/GraphPanel";
@@ -55,8 +55,11 @@ function SectionHeading({ n, title, detail }: { n: string; title: string; detail
 
 function OndeEuParei() {
   const sessao = useSessao();
-  if (!sessao.data?.logado) return null;
-  return <div className="mt-8"><SectionHeading n="01.2" title="Onde eu parei" detail="Projetos e como continuar em outra IA" /><ProjetosPanel /></div>;
+  const logado = !!sessao.data?.logado;
+  // O link do alerta do Claude Code abre /#onde-eu-parei: a seção só existe depois do login, então rola até ela quando aparece.
+  useEffect(() => { if (logado && window.location.hash === "#onde-eu-parei") document.getElementById("onde-eu-parei")?.scrollIntoView(); }, [logado]);
+  if (!logado) return null;
+  return <div id="onde-eu-parei" className="mt-8 scroll-mt-6"><SectionHeading n="01.2" title="Onde eu parei" detail="Projetos e como continuar em outra IA" /><ProjetosPanel /></div>;
 }
 
 function Index() {

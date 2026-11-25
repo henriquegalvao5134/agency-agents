@@ -92,7 +92,7 @@ try {
     if (motivos.length && Date.now() - avisadoEm > 10 * 60_000) {
       estado.avisado_em = Date.now(); salvarEstado(sessao, estado);
       await registrar([{ ...base, tipo: "checkpoint", descricao: `Alerta: ${motivos.join(" e ")}` }]);
-      process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: `ATENÇÃO (Segundo Cérebro): ${motivos.join(" e ")}. Antes de responder ao pedido, chame salvar_ficha do MCP "cerebro" para o projeto "${projeto}" com o estado COMPLETO (objetivo, decisões, plano, etapa atual, próximo passo, arquivos), para que outra sessão ou outra IA continue sem perder nada. Depois siga com o pedido. Se o limite for o motivo, avise o usuário que ele pode continuar este projeto no Codex ou no Gemini pela seção \"Onde eu parei\" do painel (https://henriquegalvao5134-agency-agents-segundo-cerebro.leandrotecnico02.workers.dev).` } }));
+      process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: `ATENÇÃO (Segundo Cérebro): ${motivos.join(" e ")}. Antes de responder ao pedido, chame salvar_ficha do MCP "cerebro" para o projeto "${projeto}" com o estado COMPLETO (objetivo, decisões, plano, etapa atual, próximo passo, arquivos), para que outra sessão ou outra IA continue sem perder nada. Depois siga com o pedido. Se o limite for o motivo, avise o usuário que ele pode continuar este projeto no Codex ou no Gemini pela seção \"Onde eu parei\" do painel: https://henriquegalvao5134-agency-agents-segundo-cerebro.leandrotecnico02.workers.dev/#onde-eu-parei` } }));
     }
   } else if (evento === "Stop" || evento === "PreCompact" || evento === "SessionEnd") {
     const u = usoNovo(entrada.transcript_path, "principal", estado);

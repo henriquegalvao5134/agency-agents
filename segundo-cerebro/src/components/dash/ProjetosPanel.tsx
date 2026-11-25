@@ -7,6 +7,7 @@ import {
   haQuantoTempo,
   maiorLimite,
   precisaTrocar,
+  quandoLido,
   type FerramentaIA,
 } from "@/lib/cerebro/continuar";
 
@@ -16,7 +17,8 @@ const ABAS: { id: FerramentaIA; rotulo: string }[] = [
   { id: "gemini", rotulo: "Gemini" },
 ];
 
-function Cartao({ ficha }: { ficha: FichaResumo }) {
+/** `trocar`: o limite do Claude está alto, então "Continuar em outra IA" já abre na aba Codex. */
+function Cartao({ ficha, trocar }: { ficha: FichaResumo; trocar: boolean }) {
   const [aberto, setAberto] = useState(false);
   const [aba, setAba] = useState<FerramentaIA>("claude-code");
   const [aviso, setAviso] = useState("");
@@ -47,7 +49,13 @@ function Cartao({ ficha }: { ficha: FichaResumo }) {
         size="sm"
         className="mt-3 gap-2"
         aria-expanded={aberto}
-        onClick={() => setAberto((v) => !v)}
+        onClick={() => {
+          if (!aberto) {
+            setAba(trocar ? "codex" : "claude-code");
+            setAviso("");
+          }
+          setAberto((v) => !v);
+        }}
       >
         <Repeat className="size-3.5" />
         Continuar em outra IA
@@ -103,16 +111,23 @@ export function ProjetosPanel() {
   if (!sessao.data?.logado) return null;
 
   const limites = atividade.data?.limites;
+  // Leitura velha (5h com mais de 5 h, semanal com mais de 7 dias) não conta: precisaTrocar a ignora.
+  const trocar = !!limites && precisaTrocar(limites);
+  const lido = limites ? quandoLido(limites.em) : "";
   const lista = fichas.data ?? [];
   return (
     <div className="space-y-4">
-      {limites && precisaTrocar(limites) && (
+      {limites && trocar && (
         <p className="flex items-center gap-2 border border-fx-800 bg-fx-950 p-3 text-sm text-fx-paper">
           <AlertTriangle className="size-4 shrink-0 text-fx-red" />
-          {`Seu limite do Claude está em ${Math.round(maiorLimite(limites))}% — salve e continue no Codex ou no Gemini.`}
+          {`Seu limite do Claude está em ${Math.round(maiorLimite(limites))}% — salve e continue no Codex ou no Gemini.${lido ? ` (lido ${lido})` : ""}`}
         </p>
       )}
-      {lista.length === 0 && !fichas.isLoading ? (
+      {lista.length === 0 && fichas.isError ? (
+        <p role="alert" className="text-sm text-fx-red">
+          Não foi possível carregar os projetos. Recarregue a página ou entre de novo.
+        </p>
+      ) : lista.length === 0 && !fichas.isLoading ? (
         <p className="text-sm text-fx-300">
           Nenhum projeto com ficha ainda. Peça para a IA salvar a ficha (salvar_ficha) ao trabalhar
           num projeto.
@@ -120,7 +135,7 @@ export function ProjetosPanel() {
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {lista.map((f) => (
-            <Cartao key={f.projeto} ficha={f} />
+            <Cartao key={f.projeto} ficha={f} trocar={trocar} />
           ))}
         </div>
       )}
