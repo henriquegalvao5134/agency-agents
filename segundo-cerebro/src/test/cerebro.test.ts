@@ -323,6 +323,31 @@ describe("painel protegido", () => {
     expect(lista).not.toContain("sk-ant");
   });
 
+  it("GET fichas exige login e devolve as fichas salvas", async () => {
+    const n = nucleo();
+    expect((await handlePainel(req("fichas"), n)).status).toBe(401);
+    const entrar = await handlePainel(
+      req("entrar", { method: "POST", body: JSON.stringify({ senha: SENHA }) }),
+      n,
+    );
+    const cookie = entrar.headers.get("set-cookie")!.split(";")[0]!;
+    await n.store.salvarFicha({
+      projeto: "crm-x",
+      titulo: "CRM X",
+      objetivo: "",
+      decisoes: "",
+      plano: "",
+      etapa_atual: "login",
+      proximo_passo: "telas",
+      arquivos: "",
+      atualizado_por: "codex",
+    });
+    const r = await handlePainel(req("fichas", {}, cookie), n);
+    expect(r.status).toBe(200);
+    const lista = (await r.json()) as { projeto: string }[];
+    expect(lista.map((f) => f.projeto)).toEqual(["crm-x"]);
+  });
+
   it("recusa escrita vinda de outro site", async () => {
     const r = await handlePainel(
       req("entrar", {

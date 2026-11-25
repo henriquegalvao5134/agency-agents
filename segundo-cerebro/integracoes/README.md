@@ -43,6 +43,14 @@ e o cabeçalho `Authorization: Bearer SEU_TOKEN`. Se o app só aceitar URL, use
 Nessas ferramentas não há ganchos automáticos: o servidor já instrui a IA a ler e salvar a ficha,
 e você pode pedir "salva no cérebro" a qualquer momento.
 
+## 4. Acabou o limite do Claude? Continue em outra IA
+No painel, seção **Onde eu parei** (entre com a senha do painel): cada projeto com ficha mostra a etapa, o próximo passo
+e o botão **Continuar em outra IA**, que dá o texto pronto para colar no Claude Code, no Codex ou no Gemini.
+Quando o limite do Claude passa de 85%, a seção avisa. Para o Codex e o Gemini enxergarem a mesma memória, ligue o MCP neles:
+- Codex: ver `codex/README.md`.
+- Gemini CLI: copie `gemini/settings.exemplo.json` para `~/.gemini/settings.json`.
+Defina a variável de ambiente `CEREBRO_TOKEN` (o mesmo segredo do Worker) no seu computador; nenhum token vai para arquivos.
+
 ## Limites conhecidos
 - O percentual de 5h/semana só existe para assinaturas Pro/Max e é lido pela barra de status do Claude Code.
 - Custo é estimado pelo Claude Code a preço de tabela; pode diferir da fatura.
