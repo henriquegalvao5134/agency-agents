@@ -1,13 +1,17 @@
+import { estadoAgencia, type CorFx, type DepartamentoId } from "@/lib/cerebro/agencia";
+import divisoes from "@/lib/cerebro/divisoes.json";
+
 /**
  * Brain map — lateral (sagittal) view, facing left. World coords ≈ x[-210,215], y[-155,185].
  *
- * Each vault folder (note type) lives in the region that best matches what it does:
- *   Frontal lobe   → Notes        planning, reasoning, writing your own thoughts
- *   Parietal lobe  → Categories   integration, structure, spatial organisation
- *   Occipital lobe → Clippings, Attachments   visual intake of outside material
- *   Temporal lobe  → References   language comprehension and long-term memory
- *   Cerebellum     → Templates    procedural routines you repeat without thinking
- *   Brainstem      → Daily        autonomic rhythm, the daily heartbeat of the vault
+ * Each agency department (src/lib/cerebro/agencia.ts) lives in the region that best matches what it does,
+ * and each real agent of the catalog is a neuron inside it (REGIAO_DO_DEPARTAMENTO):
+ *   Frontal lobe   → Estratégia, Produto e projetos   decision, planning
+ *   Parietal lobe  → Desenvolvimento                  integration, structure
+ *   Occipital lobe → Design, Mídia paga               visual intake and output
+ *   Temporal lobe  → Marketing, Vendas e suporte      language and memory
+ *   Cerebellum     → Qualidade, Especialistas         execution, routines
+ *   Brainstem      → Segurança                        keeping the system alive
  *
  * Skills fire a sequence of regions (order = signal path):
  *   Plan         frontal → parietal → cerebellum
@@ -50,15 +54,27 @@ export const REGIONS: Record<
   },
   brainstem: { name: "Tronco cerebral", c: "green", cx: 36, cy: 160, r: 40, role: "ritmo diário" },
 };
-export const GROUPS: { id: string; c: string; n: number; region: RegionId }[] = [
-  { id: "Notas", c: "orange", n: 122, region: "frontal" },
-  { id: "Recortes", c: "blue", n: 117, region: "occipital" },
-  { id: "Referências", c: "cyan", n: 110, region: "temporal" },
-  { id: "Modelos", c: "yellow", n: 34, region: "cerebellum" },
-  { id: "Categorias", c: "purple", n: 121, region: "parietal" },
-  { id: "Diário", c: "green", n: 117, region: "brainstem" },
-  { id: "Anexos", c: "magenta", n: 110, region: "occipital" },
-];
+export const REGIAO_DO_DEPARTAMENTO: Record<DepartamentoId, RegionId> = {
+  estrategia: "frontal",
+  produto: "frontal",
+  dev: "parietal",
+  design: "occipital",
+  midia: "occipital",
+  marketing: "temporal",
+  vendas: "temporal",
+  qualidade: "cerebellum",
+  especialistas: "cerebellum",
+  seguranca: "brainstem",
+};
+/** One group per department, in DEPARTAMENTOS order; n = real agent count, taken from estadoAgencia so it matches the Agência GD3 column. */
+export const GROUPS: { id: string; dep: DepartamentoId; c: CorFx; n: number; region: RegionId }[] =
+  estadoAgencia(undefined, divisoes).departamentos.map((d) => ({
+    id: d.rotulo,
+    dep: d.id,
+    c: d.cor,
+    n: d.total,
+    region: REGIAO_DO_DEPARTAMENTO[d.id],
+  }));
 export const SKILLS: { id: string; label: string; path: RegionId[]; why: string }[] = [
   {
     id: "plan",
@@ -162,16 +178,15 @@ export const wirePath = (y: number) =>
 
 /**
  * Orchestrator: every AI reads ONE compact central file (brain.md) instead of the whole vault.
- * It lists folders → lobes, skills → region paths and the agents on duty, so each call
+ * It lists departments → lobes, skills → region paths and the agents on duty, so each call
  * carries a few hundred tokens of context rather than millions.
  */
 export function buildBrainIndex(agents: Agent[]) {
   const lines = [
     "# brain.md — índice do orquestrador",
-    "## Pastas → regiões",
+    "## Departamentos → regiões",
     ...GROUPS.map(
-      (g) =>
-        `- ${g.id.toLowerCase()}/ → ${REGIONS[g.region].name} (${REGIONS[g.region].role}), ${g.n} notas`,
+      (g) => `- ${g.id} → ${REGIONS[g.region].name} (${REGIONS[g.region].role}), ${g.n} agentes`,
     ),
     "## Skills → caminho do sinal",
     ...SKILLS.map(
@@ -184,7 +199,7 @@ export function buildBrainIndex(agents: Agent[]) {
     ),
     "## Regras",
     "- Leia apenas as pastas das regiões do caminho da sua skill.",
-    "- Grave os resultados em notas/ e conecte-os com [[wikilinks]].",
+    "- Registre decisões e progresso na ficha do projeto (salvar_ficha).",
   ];
   return lines.join("\n");
 }

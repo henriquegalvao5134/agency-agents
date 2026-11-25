@@ -1,6 +1,8 @@
 #!/usr/bin/env node
-// Gera src/lib/cerebro/catalogo.json (e divisoes.json: divisão → total de agentes) a partir dos agentes do repositório agency-agents.
+// Gera src/lib/cerebro/catalogo.json (e divisoes.json: divisão → total de agentes; agentes.json: divisão → id + nome)
+// a partir dos agentes do repositório agency-agents.
 // Só o índice (nome, descrição, divisão) vai para o Worker; o texto completo é lido do GitHub sob demanda.
+// O navegador nunca importa catalogo.json: só divisoes.json e agentes.json, que são pequenos.
 // Rode de novo sempre que agentes forem adicionados, traduzidos ou reorganizados:  node scripts/gerar-catalogo.mjs
 import { readFileSync, readdirSync, writeFileSync, statSync } from "node:fs";
 import { join, dirname, relative } from "node:path";
@@ -54,6 +56,13 @@ for (const a of catalogo) porDivisao[a.divisao] = (porDivisao[a.divisao] ?? 0) +
 writeFileSync(
   join(aqui, "..", "src", "lib", "cerebro", "divisoes.json"),
   JSON.stringify(porDivisao) + "\n",
+);
+// agentes.json: divisão → [{ id, nome }] na ordem do catálogo. É o que o navegador usa para pôr cada agente real num lobo.
+const agentesPorDivisao = {};
+for (const a of catalogo) (agentesPorDivisao[a.divisao] ??= []).push({ id: a.id, nome: a.nome });
+writeFileSync(
+  join(aqui, "..", "src", "lib", "cerebro", "agentes.json"),
+  JSON.stringify(agentesPorDivisao) + "\n",
 );
 console.log(
   `${catalogo.length} agentes no catálogo em ${Object.keys(porDivisao).length} divisões.`,

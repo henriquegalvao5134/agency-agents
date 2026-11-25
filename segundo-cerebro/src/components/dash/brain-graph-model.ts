@@ -2,6 +2,7 @@
 // from GraphPanel.tsx: nothing here touches React, the DOM, or a canvas
 // context -- it only computes the node graph, the cortex point cloud, and
 // the 3D-to-2D projection that GraphPanel.tsx then draws.
+import { agentesDoDepartamento } from "@/lib/cerebro/agentes-cliente";
 import { CORE, GROUPS, REGIONS, inRegion, type RegionId } from "./brain";
 import { rng } from "./panel-utils";
 
@@ -18,6 +19,8 @@ export type N = {
   d?: number;
   hub?: boolean;
   label: string;
+  /** Id do agente real do catálogo (ex.: "engineering/engineering-backend-architect"); só nos neurônios de agente. */
+  agenteId?: string;
 };
 
 /** Half-thickness of the brain (left↔right) at a lateral point: the profile is extruded into a 3D volume. */
@@ -83,6 +86,24 @@ export const project = (x: number, y: number, z: number, o: Rot) => {
   return { x: CORE.x + x1 * s, y: CORE.y + y1 * s, s };
 };
 
+/**
+ * Hub de um departamento. Departamentos que dividem a região se espalham em volta do centro dela (o primeiro
+ * acima, os outros girando), puxados para o centro até o ponto cair dentro da região.
+ */
+function posicaoDoHub(gi: number) {
+  const g = GROUPS[gi]!;
+  const R = REGIONS[g.region];
+  const mesmaRegiao = GROUPS.filter((o) => o.region === g.region);
+  if (mesmaRegiao.length < 2) return { x: R.cx, y: R.cy };
+  const a = -Math.PI / 2 + (mesmaRegiao.indexOf(g) * 2 * Math.PI) / mesmaRegiao.length;
+  for (let d = R.r * 0.4; d > 0; d -= 2) {
+    const x = R.cx + Math.cos(a) * d,
+      y = R.cy + Math.sin(a) * d;
+    if (inRegion(g.region, x, y)) return { x, y };
+  }
+  return { x: R.cx, y: R.cy };
+}
+
 export function build() {
   const r = rng(7);
   const nodes: N[] = [];
@@ -103,10 +124,8 @@ export function build() {
   });
   GROUPS.forEach((g, gi) => {
     const R = REGIONS[g.region];
-    const offs = gi === 6 ? 18 : gi === 1 ? -14 : 0;
     const hub = nodes.length;
-    const hx = R.cx + offs * 0.6,
-      hy = R.cy + offs;
+    const { x: hx, y: hy } = posicaoDoHub(gi);
     nodes.push({
       id: hub,
       g: gi,
@@ -122,8 +141,8 @@ export function build() {
     });
     links.push([0, hub]);
     const kids: number[] = [];
-    const count = g.region === "brainstem" ? 14 : g.region === "occipital" ? 18 : 34;
-    for (let i = 0; i < count; i++) {
+    // Um neurônio por agente real do departamento, sorteado dentro da região (rejeição por inRegion).
+    for (const agente of agentesDoDepartamento(g.dep)) {
       let x = 0,
         y = 0,
         t = 0;
@@ -134,6 +153,11 @@ export function build() {
         y = R.cy + Math.sin(a) * d;
         t++;
       } while (!inRegion(g.region, x, y) && t < 400);
+      // Sorteio sem sucesso não pode deixar o agente fora do lobo: cai no hub, que está dentro.
+      if (!inRegion(g.region, x, y)) {
+        x = hx;
+        y = hy;
+      }
       const id = nodes.length;
       nodes.push({
         id,
@@ -145,7 +169,8 @@ export function build() {
         tx: x,
         ty: y,
         bz: (r() * 2 - 1) * halfW(x, y) * 0.8,
-        label: `${g.id.toLowerCase()}/nota-${i + 1}`,
+        label: agente.nome,
+        agenteId: agente.id,
       });
       links.push([kids.length && r() < 0.6 ? kids[Math.floor(r() * kids.length)]! : hub, id]);
       kids.push(id);

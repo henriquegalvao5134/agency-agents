@@ -1,0 +1,526 @@
+{
+  "academic": [
+    { "id": "academic/academic-anthropologist", "nome": "Anthropologist" },
+    { "id": "academic/academic-geographer", "nome": "Geographer" },
+    { "id": "academic/academic-historian", "nome": "Historian" },
+    { "id": "academic/academic-narratologist", "nome": "Narratologist" },
+    { "id": "academic/academic-psychologist", "nome": "Psychologist" },
+    { "id": "academic/academic-statistician", "nome": "Statistician" }
+  ],
+  "design": [
+    { "id": "design/design-brand-guardian", "nome": "Brand Guardian" },
+    { "id": "design/design-image-prompt-engineer", "nome": "Image Prompt Engineer" },
+    { "id": "design/design-inclusive-visuals-specialist", "nome": "Inclusive Visuals Specialist" },
+    { "id": "design/design-persona-walkthrough", "nome": "Persona Walkthrough Specialist" },
+    { "id": "design/design-ui-designer", "nome": "UI Designer" },
+    { "id": "design/design-ui-finish-gate-reviewer", "nome": "UI Finish-Gate Reviewer" },
+    { "id": "design/design-ux-architect", "nome": "UX Architect" },
+    { "id": "design/design-ux-researcher", "nome": "UX Researcher" },
+    { "id": "design/design-visual-storyteller", "nome": "Visual Storyteller" },
+    { "id": "design/design-whimsy-injector", "nome": "Whimsy Injector" }
+  ],
+  "engineering": [
+    {
+      "id": "engineering/engineering-ai-data-remediation-engineer",
+      "nome": "AI Data Remediation Engineer"
+    },
+    { "id": "engineering/engineering-ai-engineer", "nome": "AI Engineer" },
+    { "id": "engineering/engineering-api-platform-engineer", "nome": "API Platform Engineer" },
+    { "id": "engineering/engineering-ats-validator-architect", "nome": "ATS Validator Architect" },
+    {
+      "id": "engineering/engineering-autonomous-optimization-architect",
+      "nome": "Autonomous Optimization Architect"
+    },
+    { "id": "engineering/engineering-backend-architect", "nome": "Backend Architect" },
+    { "id": "engineering/engineering-china-network-engineer", "nome": "China Network Engineer" },
+    { "id": "engineering/engineering-cms-developer", "nome": "CMS Developer" },
+    { "id": "engineering/engineering-code-reviewer", "nome": "Code Reviewer" },
+    {
+      "id": "engineering/engineering-codebase-onboarding-engineer",
+      "nome": "Codebase Onboarding Engineer"
+    },
+    { "id": "engineering/engineering-data-engineer", "nome": "Data Engineer" },
+    {
+      "id": "engineering/engineering-data-visualization-engineer",
+      "nome": "Data Visualization Engineer"
+    },
+    { "id": "engineering/engineering-database-optimizer", "nome": "Database Optimizer" },
+    {
+      "id": "engineering/engineering-database-reliability-engineer",
+      "nome": "Database Reliability Engineer"
+    },
+    { "id": "engineering/engineering-desktop-app-engineer", "nome": "Desktop App Engineer" },
+    {
+      "id": "engineering/engineering-developer-tooling-engineer",
+      "nome": "Developer Tooling Engineer"
+    },
+    { "id": "engineering/engineering-devops-automator", "nome": "DevOps Automator" },
+    { "id": "engineering/engineering-drupal-performance", "nome": "Drupal Performance Engineer" },
+    {
+      "id": "engineering/engineering-drupal-shopping-cart",
+      "nome": "Drupal Shopping Cart Engineer"
+    },
+    { "id": "engineering/engineering-electrical-engineer", "nome": "Electrical Engineer" },
+    {
+      "id": "engineering/engineering-email-intelligence-engineer",
+      "nome": "Email Intelligence Engineer"
+    },
+    {
+      "id": "engineering/engineering-embedded-firmware-engineer",
+      "nome": "Embedded Firmware Engineer"
+    },
+    {
+      "id": "engineering/engineering-feishu-integration-developer",
+      "nome": "Feishu Integration Developer"
+    },
+    {
+      "id": "engineering/engineering-filament-optimization-specialist",
+      "nome": "Filament Optimization Specialist"
+    },
+    { "id": "engineering/engineering-finops-engineer", "nome": "FinOps Engineer" },
+    { "id": "engineering/engineering-frontend-developer", "nome": "Frontend Developer" },
+    { "id": "engineering/engineering-gaussdb-expert", "nome": "GaussDB Expert Engineer" },
+    { "id": "engineering/engineering-git-workflow-master", "nome": "Git Workflow Master" },
+    { "id": "engineering/engineering-i18n-engineer", "nome": "Internationalization Engineer" },
+    {
+      "id": "engineering/engineering-identity-access-engineer",
+      "nome": "Identity & Access Engineer"
+    },
+    {
+      "id": "engineering/engineering-incident-response-commander",
+      "nome": "Incident Response Commander"
+    },
+    { "id": "engineering/engineering-iot-fleet-engineer", "nome": "IoT Fleet Engineer" },
+    { "id": "engineering/engineering-it-service-manager", "nome": "IT Service Manager" },
+    {
+      "id": "engineering/engineering-knowledge-graph-engineer",
+      "nome": "Knowledge Graph Engineer"
+    },
+    {
+      "id": "engineering/engineering-llm-post-training-engineer",
+      "nome": "LLM Post-Training Engineer"
+    },
+    { "id": "engineering/engineering-minimal-change-engineer", "nome": "Minimal Change Engineer" },
+    { "id": "engineering/engineering-mobile-app-builder", "nome": "Mobile App Builder" },
+    { "id": "engineering/engineering-mobile-release-engineer", "nome": "Mobile Release Engineer" },
+    {
+      "id": "engineering/engineering-multi-agent-systems-architect",
+      "nome": "Multi-Agent Systems Architect"
+    },
+    { "id": "engineering/engineering-network-engineer", "nome": "Network Engineer" },
+    { "id": "engineering/engineering-orgscript-engineer", "nome": "OrgScript Engineer" },
+    {
+      "id": "engineering/engineering-payments-billing-engineer",
+      "nome": "Payments & Billing Engineer"
+    },
+    { "id": "engineering/engineering-pdf-engine-architect", "nome": "PDF Engine Architect" },
+    { "id": "engineering/engineering-platform-engineer", "nome": "Platform Engineer" },
+    { "id": "engineering/engineering-privacy-engineer", "nome": "Privacy Engineer" },
+    { "id": "engineering/engineering-prompt-engineer", "nome": "Prompt Engineer" },
+    { "id": "engineering/engineering-rag-pipeline-engineer", "nome": "RAG Pipeline Engineer" },
+    { "id": "engineering/engineering-rapid-prototyper", "nome": "Rapid Prototyper" },
+    {
+      "id": "engineering/engineering-realtime-collaboration-engineer",
+      "nome": "Realtime Collaboration Engineer"
+    },
+    {
+      "id": "engineering/engineering-rust-refactoring-specialist",
+      "nome": "Rust Refactoring Specialist"
+    },
+    {
+      "id": "engineering/engineering-search-relevance-engineer",
+      "nome": "Search Relevance Engineer"
+    },
+    {
+      "id": "engineering/engineering-section-508-specialist",
+      "nome": "Section 508 Accessibility Specialist"
+    },
+    { "id": "engineering/engineering-senior-developer", "nome": "Senior Developer" },
+    {
+      "id": "engineering/engineering-servicenow-developer-mentor",
+      "nome": "ServiceNow Developer & Mentor"
+    },
+    { "id": "engineering/engineering-software-architect", "nome": "Software Architect" },
+    {
+      "id": "engineering/engineering-solidity-smart-contract-engineer",
+      "nome": "Solidity Smart Contract Engineer"
+    },
+    { "id": "engineering/engineering-sre", "nome": "SRE (Site Reliability Engineer)" },
+    { "id": "engineering/engineering-technical-writer", "nome": "Technical Writer" },
+    {
+      "id": "engineering/engineering-universal-document-compiler",
+      "nome": "Universal Document Compiler"
+    },
+    { "id": "engineering/engineering-uswds-developer", "nome": "USWDS Developer" },
+    {
+      "id": "engineering/engineering-video-streaming-engineer",
+      "nome": "Video Streaming Engineer"
+    },
+    {
+      "id": "engineering/engineering-voice-ai-integration-engineer",
+      "nome": "Voice AI Integration Engineer"
+    },
+    { "id": "engineering/engineering-webassembly-engineer", "nome": "WebAssembly Engineer" },
+    {
+      "id": "engineering/engineering-wechat-mini-program-developer",
+      "nome": "WeChat Mini Program Developer"
+    },
+    {
+      "id": "engineering/engineering-wordpress-performance",
+      "nome": "WordPress Performance Engineer"
+    },
+    {
+      "id": "engineering/engineering-wordpress-shopping-cart",
+      "nome": "WordPress Shopping Cart Engineer"
+    }
+  ],
+  "finance": [
+    { "id": "finance/finance-bookkeeper-controller", "nome": "Bookkeeper & Controller" },
+    { "id": "finance/finance-financial-analyst", "nome": "Financial Analyst" },
+    { "id": "finance/finance-fpa-analyst", "nome": "FP&A Analyst" },
+    { "id": "finance/finance-investment-researcher", "nome": "Investment Researcher" },
+    { "id": "finance/finance-tax-strategist", "nome": "Tax Strategist" }
+  ],
+  "game-development": [
+    { "id": "game-development/blender/blender-addon-engineer", "nome": "Blender Add-on Engineer" },
+    { "id": "game-development/economy-designer", "nome": "Economy Designer" },
+    { "id": "game-development/game-audio-engineer", "nome": "Game Audio Engineer" },
+    { "id": "game-development/game-designer", "nome": "Game Designer" },
+    { "id": "game-development/godot/godot-gameplay-scripter", "nome": "Godot Gameplay Scripter" },
+    {
+      "id": "game-development/godot/godot-multiplayer-engineer",
+      "nome": "Godot Multiplayer Engineer"
+    },
+    { "id": "game-development/godot/godot-shader-developer", "nome": "Godot Shader Developer" },
+    { "id": "game-development/level-designer", "nome": "Level Designer" },
+    { "id": "game-development/narrative-designer", "nome": "Narrative Designer" },
+    {
+      "id": "game-development/roblox-studio/roblox-avatar-creator",
+      "nome": "Roblox Avatar Creator"
+    },
+    {
+      "id": "game-development/roblox-studio/roblox-experience-designer",
+      "nome": "Roblox Experience Designer"
+    },
+    {
+      "id": "game-development/roblox-studio/roblox-systems-scripter",
+      "nome": "Roblox Systems Scripter"
+    },
+    { "id": "game-development/technical-artist", "nome": "Technical Artist" },
+    { "id": "game-development/unity/unity-architect", "nome": "Unity Architect" },
+    {
+      "id": "game-development/unity/unity-editor-tool-developer",
+      "nome": "Unity Editor Tool Developer"
+    },
+    {
+      "id": "game-development/unity/unity-multiplayer-engineer",
+      "nome": "Unity Multiplayer Engineer"
+    },
+    {
+      "id": "game-development/unity/unity-shader-graph-artist",
+      "nome": "Unity Shader Graph Artist"
+    },
+    {
+      "id": "game-development/unreal-engine/unreal-multiplayer-architect",
+      "nome": "Unreal Multiplayer Architect"
+    },
+    {
+      "id": "game-development/unreal-engine/unreal-systems-engineer",
+      "nome": "Unreal Systems Engineer"
+    },
+    {
+      "id": "game-development/unreal-engine/unreal-technical-artist",
+      "nome": "Unreal Technical Artist"
+    },
+    { "id": "game-development/unreal-engine/unreal-world-builder", "nome": "Unreal World Builder" }
+  ],
+  "gis": [
+    { "id": "gis/gis-3d-scene-developer", "nome": "3D & Scene Developer" },
+    { "id": "gis/gis-analyst", "nome": "GIS Analyst" },
+    { "id": "gis/gis-bim-specialist", "nome": "BIM/GIS Specialist" },
+    { "id": "gis/gis-cartography-designer", "nome": "Cartography Designer" },
+    { "id": "gis/gis-drone-reality-mapping", "nome": "Drone/Reality Mapping Specialist" },
+    { "id": "gis/gis-geoai-ml-engineer", "nome": "GeoAI/ML Engineer" },
+    { "id": "gis/gis-geoprocessing-specialist", "nome": "Geoprocessing Specialist" },
+    { "id": "gis/gis-qa-engineer", "nome": "GIS QA Engineer" },
+    { "id": "gis/gis-solution-engineer", "nome": "Solution Engineer" },
+    { "id": "gis/gis-spatial-data-engineer", "nome": "Spatial Data Engineer" },
+    { "id": "gis/gis-spatial-data-scientist", "nome": "Spatial Data Scientist" },
+    { "id": "gis/gis-technical-consultant", "nome": "Technical Consultant" },
+    { "id": "gis/gis-web-gis-developer", "nome": "Web GIS Developer" }
+  ],
+  "healthcare": [
+    { "id": "healthcare/healthcare-clinical-evidence-agent", "nome": "Clinical Evidence Agent" },
+    {
+      "id": "healthcare/healthcare-innovation-strategist",
+      "nome": "Healthcare Innovation Strategist"
+    },
+    {
+      "id": "healthcare/healthcare-sovereign-health-systems-agent",
+      "nome": "Sovereign Health Systems Agent"
+    }
+  ],
+  "marketing": [
+    { "id": "marketing/marketing-aeo-foundations", "nome": "AEO Foundations Architect" },
+    { "id": "marketing/marketing-agentic-search-optimizer", "nome": "Agentic Search Optimizer" },
+    { "id": "marketing/marketing-ai-citation-strategist", "nome": "AI Citation Strategist" },
+    { "id": "marketing/marketing-app-store-optimizer", "nome": "App Store Optimizer" },
+    { "id": "marketing/marketing-baidu-seo-specialist", "nome": "Baidu SEO Specialist" },
+    {
+      "id": "marketing/marketing-bilibili-content-strategist",
+      "nome": "Bilibili Content Strategist"
+    },
+    { "id": "marketing/marketing-book-co-author", "nome": "Book Co-Author" },
+    { "id": "marketing/marketing-carousel-growth-engine", "nome": "Carousel Growth Engine" },
+    { "id": "marketing/marketing-china-ecommerce-operator", "nome": "China E-Commerce Operator" },
+    {
+      "id": "marketing/marketing-china-market-localization-strategist",
+      "nome": "China Market Localization Strategist"
+    },
+    { "id": "marketing/marketing-content-creator", "nome": "Content Creator" },
+    {
+      "id": "marketing/marketing-cross-border-ecommerce",
+      "nome": "Cross-Border E-Commerce Specialist"
+    },
+    {
+      "id": "marketing/marketing-developer-community-builder",
+      "nome": "Developer Community Builder"
+    },
+    { "id": "marketing/marketing-douyin-strategist", "nome": "Douyin Strategist" },
+    { "id": "marketing/marketing-email-strategist", "nome": "Email Marketing Strategist" },
+    { "id": "marketing/marketing-global-podcast-strategist", "nome": "Global Podcast Strategist" },
+    { "id": "marketing/marketing-growth-hacker", "nome": "Growth Hacker" },
+    { "id": "marketing/marketing-instagram-curator", "nome": "Instagram Curator" },
+    { "id": "marketing/marketing-kuaishou-strategist", "nome": "Kuaishou Strategist" },
+    { "id": "marketing/marketing-linkedin-content-creator", "nome": "LinkedIn Content Creator" },
+    { "id": "marketing/marketing-livestream-commerce-coach", "nome": "Livestream Commerce Coach" },
+    { "id": "marketing/marketing-multi-platform-publisher", "nome": "Multi-Platform Publisher" },
+    { "id": "marketing/marketing-podcast-strategist", "nome": "Podcast Strategist" },
+    {
+      "id": "marketing/marketing-pr-communications-manager",
+      "nome": "PR & Communications Manager"
+    },
+    { "id": "marketing/marketing-private-domain-operator", "nome": "Private Domain Operator" },
+    { "id": "marketing/marketing-reddit-community-builder", "nome": "Reddit Community Builder" },
+    { "id": "marketing/marketing-seo-specialist", "nome": "SEO Specialist" },
+    { "id": "marketing/marketing-short-video-editing-coach", "nome": "Short-Video Editing Coach" },
+    { "id": "marketing/marketing-social-media-strategist", "nome": "Social Media Strategist" },
+    { "id": "marketing/marketing-tiktok-strategist", "nome": "TikTok Strategist" },
+    { "id": "marketing/marketing-twitter-engager", "nome": "Twitter Engager" },
+    {
+      "id": "marketing/marketing-video-optimization-specialist",
+      "nome": "Video Optimization Specialist"
+    },
+    {
+      "id": "marketing/marketing-wechat-official-account",
+      "nome": "WeChat Official Account Manager"
+    },
+    { "id": "marketing/marketing-weibo-strategist", "nome": "Weibo Strategist" },
+    {
+      "id": "marketing/marketing-x-twitter-intelligence-analyst",
+      "nome": "X/Twitter Intelligence Analyst"
+    },
+    { "id": "marketing/marketing-xiaohongshu-specialist", "nome": "Xiaohongshu Specialist" },
+    { "id": "marketing/marketing-zhihu-strategist", "nome": "Zhihu Strategist" }
+  ],
+  "paid-media": [
+    { "id": "paid-media/paid-media-auditor", "nome": "Paid Media Auditor" },
+    { "id": "paid-media/paid-media-creative-strategist", "nome": "Ad Creative Strategist" },
+    { "id": "paid-media/paid-media-paid-social-strategist", "nome": "Paid Social Strategist" },
+    { "id": "paid-media/paid-media-ppc-strategist", "nome": "PPC Campaign Strategist" },
+    { "id": "paid-media/paid-media-programmatic-buyer", "nome": "Programmatic & Display Buyer" },
+    { "id": "paid-media/paid-media-search-query-analyst", "nome": "Search Query Analyst" },
+    {
+      "id": "paid-media/paid-media-tracking-specialist",
+      "nome": "Tracking & Measurement Specialist"
+    }
+  ],
+  "product": [
+    { "id": "product/product-behavioral-nudge-engine", "nome": "Behavioral Nudge Engine" },
+    { "id": "product/product-dx-engineer", "nome": "DX Engineer" },
+    { "id": "product/product-feedback-synthesizer", "nome": "Feedback Synthesizer" },
+    { "id": "product/product-manager", "nome": "Product Manager" },
+    { "id": "product/product-sprint-prioritizer", "nome": "Sprint Prioritizer" },
+    { "id": "product/product-trend-researcher", "nome": "Trend Researcher" }
+  ],
+  "project-management": [
+    {
+      "id": "project-management/project-management-experiment-tracker",
+      "nome": "Experiment Tracker"
+    },
+    {
+      "id": "project-management/project-management-jira-workflow-steward",
+      "nome": "Jira Workflow Steward"
+    },
+    {
+      "id": "project-management/project-management-meeting-notes-specialist",
+      "nome": "Meeting Notes Specialist"
+    },
+    { "id": "project-management/project-management-project-shepherd", "nome": "Project Shepherd" },
+    {
+      "id": "project-management/project-management-studio-operations",
+      "nome": "Studio Operations"
+    },
+    { "id": "project-management/project-management-studio-producer", "nome": "Studio Producer" },
+    { "id": "project-management/project-manager-senior", "nome": "Senior Project Manager" }
+  ],
+  "research": [{ "id": "research/research-synthesist", "nome": "Research Synthesist" }],
+  "sales": [
+    { "id": "sales/sales-account-strategist", "nome": "Account Strategist" },
+    { "id": "sales/sales-coach", "nome": "Sales Coach" },
+    { "id": "sales/sales-deal-strategist", "nome": "Deal Strategist" },
+    { "id": "sales/sales-discovery-coach", "nome": "Discovery Coach" },
+    { "id": "sales/sales-engineer", "nome": "Sales Engineer" },
+    { "id": "sales/sales-offer-lead-gen-strategist", "nome": "Offer & Lead Gen Strategist" },
+    { "id": "sales/sales-outbound-strategist", "nome": "Outbound Strategist" },
+    { "id": "sales/sales-pipeline-analyst", "nome": "Pipeline Analyst" },
+    { "id": "sales/sales-proposal-strategist", "nome": "Proposal Strategist" }
+  ],
+  "security": [
+    {
+      "id": "security/security-ai-generated-code-auditor",
+      "nome": "AI-Generated Code Security Auditor"
+    },
+    { "id": "security/security-appsec-engineer", "nome": "Application Security Engineer" },
+    { "id": "security/security-architect", "nome": "Security Architect" },
+    {
+      "id": "security/security-blockchain-security-auditor",
+      "nome": "Blockchain Security Auditor"
+    },
+    { "id": "security/security-cloud-security-architect", "nome": "Cloud Security Architect" },
+    { "id": "security/security-compliance-auditor", "nome": "Compliance Auditor" },
+    { "id": "security/security-incident-responder", "nome": "Incident Responder" },
+    { "id": "security/security-penetration-tester", "nome": "Penetration Tester" },
+    {
+      "id": "security/security-secrets-credential-engineer",
+      "nome": "Secrets & Credential Hygiene Engineer"
+    },
+    { "id": "security/security-senior-secops", "nome": "Senior SecOps Engineer" },
+    { "id": "security/security-threat-detection-engineer", "nome": "Threat Detection Engineer" },
+    { "id": "security/security-threat-intelligence-analyst", "nome": "Threat Intelligence Analyst" }
+  ],
+  "spatial-computing": [
+    {
+      "id": "spatial-computing/macos-spatial-metal-engineer",
+      "nome": "macOS Spatial/Metal Engineer"
+    },
+    {
+      "id": "spatial-computing/terminal-integration-specialist",
+      "nome": "Terminal Integration Specialist"
+    },
+    { "id": "spatial-computing/visionos-spatial-engineer", "nome": "visionOS Spatial Engineer" },
+    {
+      "id": "spatial-computing/xr-cockpit-interaction-specialist",
+      "nome": "XR Cockpit Interaction Specialist"
+    },
+    { "id": "spatial-computing/xr-immersive-developer", "nome": "XR Immersive Developer" },
+    { "id": "spatial-computing/xr-interface-architect", "nome": "XR Interface Architect" }
+  ],
+  "specialized": [
+    { "id": "specialized/accounts-payable-agent", "nome": "Accounts Payable Agent" },
+    { "id": "specialized/agentic-identity-trust", "nome": "Agentic Identity & Trust Architect" },
+    { "id": "specialized/agents-orchestrator", "nome": "Agents Orchestrator" },
+    {
+      "id": "specialized/automation-governance-architect",
+      "nome": "Automation Governance Architect"
+    },
+    { "id": "specialized/business-strategist", "nome": "Business Strategist" },
+    { "id": "specialized/change-management-consultant", "nome": "Change Management Consultant" },
+    { "id": "specialized/chief-financial-officer", "nome": "Chief Financial Officer" },
+    { "id": "specialized/corporate-training-designer", "nome": "Corporate Training Designer" },
+    { "id": "specialized/customer-service", "nome": "Customer Service" },
+    { "id": "specialized/customer-success-manager", "nome": "Customer Success Manager" },
+    { "id": "specialized/data-consolidation-agent", "nome": "Data Consolidation Agent" },
+    { "id": "specialized/data-privacy-officer", "nome": "Data Privacy Officer" },
+    { "id": "specialized/esg-sustainability-officer", "nome": "ESG & Sustainability Officer" },
+    {
+      "id": "specialized/government-digital-presales-consultant",
+      "nome": "Government Digital Presales Consultant"
+    },
+    { "id": "specialized/grant-writer", "nome": "Grant Writer" },
+    {
+      "id": "specialized/healthcare-aging-parent-care-companion",
+      "nome": "Aging Parent Care Companion"
+    },
+    { "id": "specialized/healthcare-customer-service", "nome": "Healthcare Customer Service" },
+    {
+      "id": "specialized/healthcare-marketing-compliance",
+      "nome": "Healthcare Marketing Compliance Specialist"
+    },
+    { "id": "specialized/hospitality-guest-services", "nome": "Hospitality Guest Services" },
+    { "id": "specialized/hr-onboarding", "nome": "HR Onboarding" },
+    { "id": "specialized/identity-graph-operator", "nome": "Identity Graph Operator" },
+    { "id": "specialized/language-translator", "nome": "Language Translator" },
+    { "id": "specialized/legal-billing-time-tracking", "nome": "Legal Billing & Time Tracking" },
+    { "id": "specialized/legal-client-intake", "nome": "Legal Client Intake" },
+    { "id": "specialized/legal-document-review", "nome": "Legal Document Review" },
+    { "id": "specialized/loan-officer-assistant", "nome": "Loan Officer Assistant" },
+    { "id": "specialized/lsp-index-engineer", "nome": "LSP/Index Engineer" },
+    { "id": "specialized/ma-integration-manager", "nome": "M&A Integration Manager" },
+    {
+      "id": "specialized/medical-billing-coding-specialist",
+      "nome": "Medical Billing & Coding Specialist"
+    },
+    { "id": "specialized/operations-manager", "nome": "Operations Manager" },
+    { "id": "specialized/organizational-psychologist", "nome": "Organizational Psychologist" },
+    { "id": "specialized/personal-growth-mentor", "nome": "Personal Growth Mentor" },
+    { "id": "specialized/real-estate-buyer-seller", "nome": "Real Estate Buyer & Seller" },
+    { "id": "specialized/recruitment-specialist", "nome": "Recruitment Specialist" },
+    { "id": "specialized/report-distribution-agent", "nome": "Report Distribution Agent" },
+    { "id": "specialized/resume-tailor", "nome": "Resume Tailor" },
+    { "id": "specialized/retail-customer-returns", "nome": "Retail Customer Returns" },
+    { "id": "specialized/sales-data-extraction-agent", "nome": "Sales Data Extraction Agent" },
+    { "id": "specialized/sales-outreach", "nome": "Sales Outreach" },
+    { "id": "specialized/specialized-chief-of-staff", "nome": "Chief of Staff" },
+    { "id": "specialized/specialized-civil-engineer", "nome": "Civil Engineer" },
+    { "id": "specialized/specialized-codebase-archaeologist", "nome": "Codebase Archaeologist" },
+    {
+      "id": "specialized/specialized-cultural-intelligence-strategist",
+      "nome": "Cultural Intelligence Strategist"
+    },
+    { "id": "specialized/specialized-developer-advocate", "nome": "Developer Advocate" },
+    { "id": "specialized/specialized-document-generator", "nome": "Document Generator" },
+    {
+      "id": "specialized/specialized-fedramp-rmf-compliance",
+      "nome": "FedRAMP & RMF Compliance Engineer"
+    },
+    { "id": "specialized/specialized-focus-music-architect", "nome": "Focus Music Architect" },
+    {
+      "id": "specialized/specialized-french-consulting-market",
+      "nome": "French Consulting Market Navigator"
+    },
+    {
+      "id": "specialized/specialized-korean-business-navigator",
+      "nome": "Korean Business Navigator"
+    },
+    { "id": "specialized/specialized-master-plan-architect", "nome": "Master Plan Architect" },
+    { "id": "specialized/specialized-mcp-builder", "nome": "MCP Builder" },
+    { "id": "specialized/specialized-model-qa", "nome": "Model QA Specialist" },
+    { "id": "specialized/specialized-pricing-analyst", "nome": "Pricing Analyst" },
+    { "id": "specialized/specialized-salesforce-architect", "nome": "Salesforce Architect" },
+    { "id": "specialized/specialized-strategy-duel-agent", "nome": "Strategy Duel Agent" },
+    { "id": "specialized/specialized-workflow-architect", "nome": "Workflow Architect" },
+    { "id": "specialized/study-abroad-advisor", "nome": "Study Abroad Advisor" },
+    { "id": "specialized/supply-chain-strategist", "nome": "Supply Chain Strategist" },
+    { "id": "specialized/zk-steward", "nome": "ZK Steward" }
+  ],
+  "support": [
+    { "id": "support/support-analytics-reporter", "nome": "Analytics Reporter" },
+    { "id": "support/support-executive-summary-generator", "nome": "Executive Summary Generator" },
+    { "id": "support/support-finance-tracker", "nome": "Finance Tracker" },
+    { "id": "support/support-infrastructure-maintainer", "nome": "Infrastructure Maintainer" },
+    { "id": "support/support-legal-compliance-checker", "nome": "Legal Compliance Checker" },
+    { "id": "support/support-support-responder", "nome": "Support Responder" }
+  ],
+  "testing": [
+    { "id": "testing/testing-accessibility-auditor", "nome": "Accessibility Auditor" },
+    { "id": "testing/testing-api-tester", "nome": "API Tester" },
+    { "id": "testing/testing-evidence-collector", "nome": "Evidence Collector" },
+    { "id": "testing/testing-performance-benchmarker", "nome": "Performance Benchmarker" },
+    { "id": "testing/testing-reality-checker", "nome": "Reality Checker" },
+    { "id": "testing/testing-test-automation-engineer", "nome": "Test Automation Engineer" },
+    { "id": "testing/testing-test-results-analyzer", "nome": "Test Results Analyzer" },
+    { "id": "testing/testing-tool-evaluator", "nome": "Tool Evaluator" },
+    { "id": "testing/testing-workflow-optimizer", "nome": "Workflow Optimizer" }
+  ]
+}
