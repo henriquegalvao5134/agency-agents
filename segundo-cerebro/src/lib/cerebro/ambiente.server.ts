@@ -26,5 +26,8 @@ export function definirAmbiente(env: unknown) {
   if (env && typeof env === "object") atual = env as CerebroAmbiente;
 }
 export function ambiente(): CerebroAmbiente {
+  // Na Cloudflare, o runtime do nitro guarda o env do Worker em globalThis.__env__ a cada requisição.
+  const doNitro = (globalThis as { __env__?: unknown }).__env__;
+  if (doNitro && typeof doNitro === "object" && "CEREBRO_DB" in doNitro) return doNitro as CerebroAmbiente;
   return atual;
 }
