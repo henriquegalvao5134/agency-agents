@@ -2,16 +2,14 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError, logError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
-import { handleLiveRequest } from "./lib/live-relay.server";
 import { definirAmbiente } from "./lib/cerebro/ambiente.server";
 import { handleCerebroHttp } from "./lib/cerebro/http.server";
 import { handleMcpRequest } from "./lib/cerebro/mcp.server";
 import { nucleoDoAmbiente } from "./lib/cerebro/nucleo.server";
 import { handlePainel } from "./lib/cerebro/painel.server";
 
-/** Cabeçalhos de segurança em todas as respostas normais (não no WebSocket do Jarvis). */
+/** Cabeçalhos de segurança em todas as respostas. */
 function protegido(response: Response): Response {
-  if (response.status === 101) return response;
   const r = new Response(response.body, response);
   r.headers.set("x-content-type-options", "nosniff");
   r.headers.set("x-frame-options", "DENY");
@@ -70,7 +68,6 @@ export default {
     try {
       definirAmbiente(env);
       const pathname = new URL(request.url).pathname;
-      if (pathname === "/api/live") return handleLiveRequest(request);
       if (pathname === "/api/mcp" || pathname.startsWith("/api/mcp/"))
         return protegido(await handleMcpRequest(request, nucleoDoAmbiente()));
       if (pathname.startsWith("/api/cerebro/"))

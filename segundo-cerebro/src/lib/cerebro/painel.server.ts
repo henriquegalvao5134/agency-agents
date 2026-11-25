@@ -12,6 +12,8 @@ import {
 } from "./cofre.server";
 import { chamarModelo } from "./llm.server";
 import type { Nucleo } from "./nucleo.server";
+import { roteadorDoCofre } from "./nucleo.server";
+import { decidir, montarInstrucoes } from "./orquestrador.server";
 import { resumirAtividade } from "./store.server";
 import { NovoProvedor, PAPEIS, type Provedor } from "./types";
 
@@ -26,6 +28,7 @@ import { NovoProvedor, PAPEIS, type Provedor } from "./types";
  *   PATCH  /api/painel/provedores/<id>      { papel }
  *   DELETE /api/painel/provedores/<id>
  *   POST   /api/painel/provedores/<id>/testar
+ *   POST   /api/painel/perguntar            { provedorId, pedido, skill, delegar } — a caixa do cérebro
  */
 const json = (body: unknown, status = 200, headers: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), {
@@ -79,6 +82,80 @@ export async function handlePainel(request: Request, n: Nucleo | null): Promise<
     if (rota[0] === "atividade" && metodo === "GET") {
       const desde = new Date(Date.now() - 7 * 24 * 3600_000).toISOString();
       return json(resumirAtividade(await n.store.eventosDesde(desde, 2000)));
+    }
+    if (rota[0] === "perguntar" && metodo === "POST") {
+      const { provedorId, pedido, skill, delegar } = z
+        .object({
+          provedorId: z.string().min(1),
+          pedido: z.string().trim().min(1).max(4000),
+          skill: z.string().max(60).default(""),
+          delegar: z.boolean().default(true),
+        })
+        .parse(await request.json());
+      const executor = (await n.store.listarProvedores()).find((p) => p.id === provedorId);
+      if (!executor)
+        return json(
+          { erro: "Essa IA não está no cofre. Cadastre a chave dela no Cofre de IAs." },
+          404,
+        );
+      const decisao = delegar ? await decidir(pedido, await roteadorDoCofre(n), n.f) : null;
+      if (decisao) {
+        await n.store.registrarEvento({
+          ferramenta: "plataforma",
+          sessao: "",
+          projeto: "",
+          agente: "orquestrador",
+          tipo: "delegacao",
+          descricao:
+            `${decisao.area}: ${decisao.agentes.map((a) => a.nome).join(", ") || "sem agente"} → ${executor.nome}`.slice(
+              0,
+              2000,
+            ),
+          modelo: decisao.modelo,
+          tokens_entrada: decisao.uso?.tokens_entrada ?? 0,
+          tokens_saida: decisao.uso?.tokens_saida ?? 0,
+          tokens_cache: decisao.uso?.tokens_cache ?? 0,
+          custo_usd: 0,
+          limite_5h_pct: null,
+          limite_7d_pct: null,
+          meta: {},
+        });
+      }
+      const sistema = [
+        `Você é "${executor.nome}", uma IA ligada ao Segundo Cérebro da AutoGTEC/GD3 (agência de marketing e desenvolvimento de software).`,
+        skill ? `Skill em uso: ${skill}.` : "",
+        decisao
+          ? `O orquestrador preparou isto para você seguir:\n${montarInstrucoes(pedido, decisao, null, "")}`
+          : "",
+        "Responda em português do Brasil, prático e direto. Não invente dados de clientes.",
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+      const chave = await decifrar(executor.chave_cifrada, executor.iv, n.chaveMestra);
+      const r = await chamarModelo(executor, chave, sistema, pedido, 1500, n.f);
+      await n.store.registrarEvento({
+        ferramenta: "plataforma",
+        sessao: "",
+        projeto: "",
+        agente: executor.nome,
+        tipo: "etapa",
+        descricao: pedido.slice(0, 300),
+        modelo: executor.modelo,
+        tokens_entrada: r.tokens_entrada,
+        tokens_saida: r.tokens_saida,
+        tokens_cache: r.tokens_cache,
+        custo_usd: 0,
+        limite_5h_pct: null,
+        limite_7d_pct: null,
+        meta: {},
+      });
+      return json({
+        ok: true,
+        texto: r.texto,
+        area: decisao?.area ?? null,
+        agentes: decisao?.agentes.map((a) => a.nome) ?? [],
+        viaIa: decisao?.viaIa ?? false,
+      });
     }
     if (rota[0] === "provedores") {
       const id = rota[1] ? decodeURIComponent(rota[1]) : "";

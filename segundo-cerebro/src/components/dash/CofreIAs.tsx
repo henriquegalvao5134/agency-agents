@@ -83,7 +83,7 @@ export function CofreIAs() {
     });
   };
   return (
-    <div className="mt-8 grid gap-6 lg:grid-cols-12">
+    <div id="cofre" className="mt-8 grid scroll-mt-20 gap-6 lg:grid-cols-12">
       <div className="lg:col-span-7">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h3 className="flex items-center gap-2 text-sm text-fx-paper">

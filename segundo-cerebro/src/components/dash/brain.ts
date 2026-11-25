@@ -67,7 +67,7 @@ export function inRegion(id: RegionId, x: number, y: number) {
  *   Grok         → xAI model
  *   Claude Code  → Anthropic's coding agent in the terminal
  *   Anthropic API → Claude models called directly
- * Agents with a model answer for real through the built-in AI gateway (src/lib/brain-ai.functions.ts).
+ * Ferramentas (Claude Code, Codex) acendem pelo registro do núcleo; IAs com chave vêm do cofre (src/lib/cerebro).
  */
 export const CORE = { x: 10, y: -30 };
 /** Illustration placement in world coords (lateral brain art, see src/assets/brain-lateral.png). */
@@ -76,10 +76,8 @@ export type AgentKind = "autonomous" | "api";
 export type Agent = { id: string; name: string; vendor: string; c: string; model: string | null; kind?: AgentKind };
 /** Starting inputs. Users can connect any other AI from the "Connect AI" menu; model = null means it still needs its own key. */
 export const DEFAULT_AGENTS: Agent[] = [
-  { id: "codex", name: "Codex", vendor: "OpenAI", c: "green", model: "openai/gpt-6.1-terra", kind: "autonomous" },
-  { id: "grok", name: "Grok", vendor: "xAI", c: "red", model: null, kind: "api" },
-  { id: "claude-code", name: "Claude Code", vendor: "Anthropic", c: "orange", model: "anthropic/claude-sonnet-5", kind: "autonomous" },
-  { id: "anthropic", name: "Anthropic API", vendor: "Claude", c: "magenta", model: "anthropic/claude-opus-5-5", kind: "api" },
+  { id: "claude-code", name: "Claude Code", vendor: "Anthropic", c: "orange", model: null, kind: "autonomous" },
+  { id: "codex", name: "Codex", vendor: "OpenAI", c: "green", model: null, kind: "autonomous" },
 ];
 export const portY = (i: number, n: number) => (i - (n - 1) / 2) * Math.min(58, 440 / Math.max(1, n)) - 15;
 export type AgentId = string;
