@@ -54,6 +54,18 @@ describe("GraphPanel: agentes delegados acendem dentro do lobo", () => {
     expect(aceso.querySelector('animate[attributeName="r"]')).not.toBeNull();
     expect(aceso.querySelector("circle")!.getAttribute("stroke")).toBe("var(--fx-blue)");
     expect(aceso.textContent).toBe("Backend Architect");
+    // o nome fica abaixo do anel (raio até 9), longe do rótulo do hub do departamento (acima, y -11)
+    const nome = Number(aceso.querySelector("text")!.getAttribute("y"));
+    expect(nome).toBeGreaterThan(9);
+    // rótulo do hub: texto sem x, dentro do neurônio (a coluna da agência também escreve "Desenvolvimento", com x)
+    const rotulosHub = [...container.querySelectorAll("text")].filter(
+      (t) =>
+        t.textContent === "Desenvolvimento" &&
+        !t.hasAttribute("x") &&
+        t.closest("[data-agente-aceso]") === null,
+    );
+    expect(rotulosHub).toHaveLength(1);
+    expect(Number(rotulosHub[0]!.getAttribute("y"))).toBeLessThan(0);
   });
 
   it("sem delegação (ou sem login) nenhum neurônio acende", () => {
@@ -84,5 +96,15 @@ describe("GraphPanel: agentes delegados acendem dentro do lobo", () => {
     expect(getByText("Parietal · 66 agentes")).toBeInTheDocument();
     expect(getByText("Tronco cerebral · 12 agentes")).toBeInTheDocument();
     expect(container.textContent).not.toMatch(/desenvolvimento\//);
+  });
+
+  it("o cartão do orquestrador fala da agência, não do vault", () => {
+    const { getByText, container } = render(<GraphPanel />);
+    expect(
+      getByText(
+        "Toda IA lê primeiro este arquivo central, assim entende a agência sem gastar milhões de tokens.",
+      ),
+    ).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/vault/i);
   });
 });

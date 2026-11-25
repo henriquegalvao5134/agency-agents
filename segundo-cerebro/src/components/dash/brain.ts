@@ -177,7 +177,7 @@ export const wirePath = (y: number) =>
   `M${PORT_X + 70},${y} C${PORT_X + 150},${y} -230,${y * 0.4 + 150} -120,150 S${CORE.x - 60},${CORE.y + 110} ${CORE.x},${CORE.y}`;
 
 /**
- * Orchestrator: every AI reads ONE compact central file (brain.md) instead of the whole vault.
+ * Orchestrator: every AI reads ONE compact central file (brain.md) instead of the whole agency.
  * It lists departments → lobes, skills → region paths and the agents on duty, so each call
  * carries a few hundred tokens of context rather than millions.
  */

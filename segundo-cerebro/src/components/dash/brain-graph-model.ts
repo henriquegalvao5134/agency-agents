@@ -104,6 +104,9 @@ function posicaoDoHub(gi: number) {
   return { x: R.cx, y: R.cy };
 }
 
+/** Chance de uma sinapse entre dois neurônios próximos (menos de 30 de distância). */
+const SINAPSE_CHANCE = 0.12;
+
 export function build() {
   const r = rng(7);
   const nodes: N[] = [];
@@ -177,12 +180,13 @@ export function build() {
       kids.push(id);
     }
   });
-  // Synapses: nearby neurons connect, which also wires neighbouring lobes together.
+  // Synapses: nearby neurons connect, which also wires neighbouring lobes together. With ~290 neurons the
+  // chance stays low so the SVG keeps ~500-600 links: the whole brain is redrawn on every animation frame.
   for (let i = 1; i < nodes.length; i++)
     for (let j = i + 1; j < nodes.length; j++) {
       const a = nodes[i]!,
         b = nodes[j]!;
-      if (Math.hypot(a.tx - b.tx, a.ty - b.ty) < 30 && r() < 0.3) links.push([i, j]);
+      if (Math.hypot(a.tx - b.tx, a.ty - b.ty) < 30 && r() < SINAPSE_CHANCE) links.push([i, j]);
     }
   return { nodes, links };
 }

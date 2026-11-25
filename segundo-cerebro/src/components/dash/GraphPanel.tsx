@@ -158,9 +158,13 @@ export function GraphPanel() {
     };
     raf = requestAnimationFrame(step);
     const el = svg.current!;
+    // Fora da tela o cérebro para de animar (cada quadro redesenha o SVG inteiro) e volta ao reaparecer.
+    // Sem IntersectionObserver (jsdom, navegador antigo) ele segue animando como antes.
+    const io = typeof IntersectionObserver === "undefined" ? null : new IntersectionObserver(entries => { const e = entries[entries.length - 1]; if (!e) return; if (!e.isIntersecting) { cancelAnimationFrame(raf); raf = 0; } else if (!raf) raf = requestAnimationFrame(step); });
+    io?.observe(el);
     const onWheel = (e: WheelEvent) => { e.preventDefault(); const v = viewRef.current; const rect = el.getBoundingClientRect(); const px = e.clientX - rect.left - rect.width / 2, py = e.clientY - rect.top - rect.height / 2; const nk = Math.min(4, Math.max(.3, v.k * Math.exp(-e.deltaY * 0.0015))); const k = nk / v.k; setView({ k: nk, x: px - (px - v.x) * k, y: py - (py - v.y) * k }); };
     el.addEventListener("wheel", onWheel, { passive: false });
-    return () => { cancelAnimationFrame(raf); el.removeEventListener("wheel", onWheel); };
+    return () => { cancelAnimationFrame(raf); io?.disconnect(); el.removeEventListener("wheel", onWheel); };
   }, [data, cortex]);
   const toWorld = (e: React.PointerEvent) => { const r = svg.current?.getBoundingClientRect(); if (!r) return { x: 0, y: 0 }; return { x: (e.clientX - r.left - r.width / 2 - view.x) / view.k, y: (e.clientY - r.top - r.height / 2 - view.y) / view.k }; };
   const startBrainMove = (e: React.PointerEvent) => { e.stopPropagation(); svg.current?.setPointerCapture(e.pointerId); drag.current = { brain: { x: e.clientX, y: e.clientY, ox: brainOffset.x, oy: brainOffset.y } }; };
@@ -245,11 +249,11 @@ export function GraphPanel() {
               {n.hub && n.id !== 0 && <g><text textAnchor="middle" y={-11} fontSize={9.5} fontWeight={600} paintOrder="stroke" stroke={fx("black")} strokeWidth={3} fontFamily="var(--font-sans)" fill={color(n)}>{n.label}</text></g>}
             </g>
           ))}
-          {/* Agente delegado: anel pulsando na cor do departamento e o nome, por cima dos outros neurônios */}
+          {/* Agente delegado: anel pulsando na cor do departamento e o nome abaixo do anel (o rótulo do hub fica acima), por cima dos outros neurônios */}
           {data.nodes.filter(n => n.agenteId && acesos.has(n.agenteId) && vis(n)).map(n => (
             <g key={`aceso-${n.id}`} data-agente-aceso={n.agenteId} transform={`translate(${n.x},${n.y})`} pointerEvents="none">
               <circle r={7} fill="none" stroke={fx(GROUPS[n.g]!.c)} strokeWidth={1.4}><animate attributeName="r" values="4;9;4" dur="1.2s" repeatCount="indefinite" /></circle>
-              <text textAnchor="middle" y={-11} fontSize={8} fontWeight={600} paintOrder="stroke" stroke={fx("black")} strokeWidth={2.5} fontFamily="var(--font-sans)" fill={fx("paper")}>{n.label}</text>
+              <text textAnchor="middle" y={16} fontSize={8} fontWeight={600} paintOrder="stroke" stroke={fx("black")} strokeWidth={2.5} fontFamily="var(--font-sans)" fill={fx("paper")}>{n.label}</text>
             </g>
           ))}
           </g>
@@ -281,7 +285,7 @@ export function GraphPanel() {
         {log.length > 0 && <div className="mt-2 space-y-0.5 border-t border-fx-800 pt-1 font-mono text-[11px] text-fx-500">{log.map((l, i) => <div key={i} className={i ? "opacity-60" : "text-fx-300"}>› {l}</div>)}</div>}
       </div></Movable>
       <Movable id="orch" title="Orquestrador · brain.md" right={<span className="font-mono text-[11px] text-fx-green">~{estimateTokens(buildBrainIndex(agents))} tokens</span>}>
-        <p className="px-3 pt-2 leading-4 text-fx-500">Toda IA lê primeiro este arquivo central, assim entende o vault sem gastar milhões de tokens.</p>
+        <p className="px-3 pt-2 leading-4 text-fx-500">Toda IA lê primeiro este arquivo central, assim entende a agência sem gastar milhões de tokens.</p>
         <pre className="m-3 max-h-48 overflow-auto border border-fx-800 bg-fx-black p-2 font-mono text-[11px] leading-4 text-fx-300">{buildBrainIndex(agents)}</pre>
       </Movable>
       <Movable id="legend" className="bottom-2 left-2 w-48" title="Departamentos → lobos">

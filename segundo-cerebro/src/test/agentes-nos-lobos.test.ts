@@ -70,6 +70,31 @@ describe("departamentos e agentes reais ocupam os lobos", () => {
     for (const n of agentes) expect(ligados.has(n.id)).toBe(true);
   });
 
+  it("a rede fica leve (o SVG redesenha a cada quadro) e todo agente chega ao hub do seu departamento", () => {
+    const { nodes, links } = build();
+    // ~290 neurônios: sinapses limitadas para o total ficar perto das ~500 ligações de antes dos agentes
+    expect(links.length).toBeLessThanOrEqual(620);
+    // árvore: raiz → hubs e hub → agentes (cada agente pendura no hub ou num irmão do mesmo departamento)
+    expect(links.length).toBeGreaterThanOrEqual(nodes.length - 1);
+    for (const [gi] of GROUPS.entries()) {
+      const hub = nodes.find((n) => n.hub && n.g === gi)!;
+      const doGrupo = new Set(nodes.filter((n) => n.g === gi).map((n) => n.id));
+      const alcancados = new Set([hub.id]);
+      for (let mudou = true; mudou;) {
+        mudou = false;
+        for (const [a, b] of links) {
+          if (!doGrupo.has(a) || !doGrupo.has(b)) continue;
+          if (alcancados.has(a) !== alcancados.has(b)) {
+            alcancados.add(a).add(b);
+            mudou = true;
+          }
+        }
+      }
+      for (const n of nodes.filter((x) => x.agenteId && x.g === gi))
+        expect(alcancados.has(n.id)).toBe(true);
+    }
+  });
+
   it("GROUPS segue DEPARTAMENTOS com a região, a cor e o total reais", () => {
     expect(GROUPS.map((g) => g.dep)).toEqual(DEPARTAMENTOS.map((d) => d.id));
     expect(REGIAO_DO_DEPARTAMENTO).toEqual({
