@@ -1,11 +1,48 @@
 import type { Atividade } from "./types";
 
-export type FerramentaIA = "claude-code" | "codex" | "gemini";
+export type FerramentaIA = "claude-code" | "claude-app" | "codex" | "gemini";
+
+/** Endereço do cérebro quando não dá para ler o do navegador. */
+export const SITE_CEREBRO =
+  "https://henriquegalvao5134-agency-agents-segundo-cerebro.leandrotecnico02.workers.dev";
 
 /** Limite (em %) a partir do qual vale salvar e trocar de IA. */
 export const LIMITE_TROCA = 85;
 
 const HORA = 3_600_000;
+
+/**
+ * Como ligar a ferramenta ao cérebro (uma vez só): onde fazer e o comando/endereço para copiar.
+ * O token nunca vai para o navegador: aparece como SEU_TOKEN para a pessoa trocar pelo CEREBRO_TOKEN.
+ */
+export function ligarFerramenta(
+  ferramenta: FerramentaIA,
+  site: string,
+): { como: string; comando: string } {
+  const mcp = `${site}/api/mcp`;
+  switch (ferramenta) {
+    case "claude-code":
+      return {
+        como: "No terminal (PowerShell), troque SEU_TOKEN pelo seu token e rode uma vez. Depois abra o Claude Code na pasta do projeto.",
+        comando: `claude mcp add --scope user --transport http cerebro ${mcp} --header "Authorization: Bearer SEU_TOKEN"`,
+      };
+    case "claude-app":
+      return {
+        como: "No Claude do site, do app ou de outra conta: em Configurações → Conectores, adicione um conector personalizado chamado cerebro com este endereço (troque SEU_TOKEN pelo seu token). Depois abra uma conversa nova.",
+        comando: `${mcp}/SEU_TOKEN`,
+      };
+    case "codex":
+      return {
+        como: "No terminal (PowerShell), troque SEU_TOKEN pelo seu token e rode as duas linhas uma vez. Depois abra um terminal novo e rode o Codex na pasta do projeto.",
+        comando: `setx CEREBRO_TOKEN "SEU_TOKEN"\ncodex mcp add cerebro --url ${mcp} --bearer-token-env-var CEREBRO_TOKEN`,
+      };
+    case "gemini":
+      return {
+        como: "No terminal (PowerShell), troque SEU_TOKEN pelo seu token e rode uma vez. Depois abra o Gemini CLI na pasta do projeto.",
+        comando: `gemini mcp add -s user --transport http --header "Authorization: Bearer SEU_TOKEN" cerebro ${mcp}`,
+      };
+  }
+}
 
 /** Texto para colar na outra IA: ela lê a ficha do projeto no MCP "cerebro" e segue de onde parou. */
 export function comandoContinuar(ferramenta: FerramentaIA, projeto: string): string {

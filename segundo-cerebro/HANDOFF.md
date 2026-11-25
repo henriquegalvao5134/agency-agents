@@ -53,7 +53,9 @@ Ainda há a dependência de build `@lovable.dev/vite-tanstack-config` (só ferra
 2. Cofre de IAs com chave cifrada; login do painel; orquestrador; caixa do cérebro usa as chaves do cofre; saída total da Lovable (gateway, Supabase, Jarvis desligado).
 3. Cérebro: orquestrador no centro (pulsa ao delegar), 10 departamentos e 283 agentes reais **dentro dos lobos** (acendem quando delegados),
    coluna "Agência GD3", skills (superpowers + GD3), vista padrão enquadrada, animação pausa fora da tela.
-4. "Onde eu parei": cartões por projeto + "Continuar em outra IA" (Claude Code / Codex / Gemini) + aviso de limite com hora da leitura.
+4. "Onde eu parei" (só logado): cartões por projeto + "Continuar em outra IA" com 4 abas (Claude Code, Claude site/app, Codex, Gemini);
+   cada aba mostra 1) o comando/endereço para ligar aquela IA ao cérebro (token como SEU_TOKEN) e 2) o texto para colar. Aviso de limite com hora da leitura.
+   O Claude site/app (outra conta) entra por conector personalizado com o endereço `<site>/api/mcp/<CEREBRO_TOKEN>`.
 
 ## 5. Próximos passos (em ordem; prioridade final é do Henrique)
 1. **Henrique usar de verdade:** entrar no painel; cadastrar no cofre uma IA Anthropic `claude-haiku-5-5` com papel **Orquestrador** e testar;

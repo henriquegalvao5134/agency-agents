@@ -6,6 +6,7 @@ import { ProjetosPanel } from "@/components/dash/ProjetosPanel";
 import {
   comandoContinuar,
   haQuantoTempo,
+  ligarFerramenta,
   maiorLimite,
   precisaTrocar,
   quandoLido,
@@ -65,6 +66,27 @@ describe("continuar", () => {
     expect(comandoContinuar("codex", "crm-x")).toBe(
       'Use o MCP "cerebro": chame ler_ficha com o projeto "crm-x", continue a partir do próximo passo e salve a ficha com salvar_ficha (atualizado_por: "codex") ao fim de cada etapa.',
     );
+  });
+  it("cada ferramenta tem o seu jeito de ligar ao cérebro (sem expor o token)", () => {
+    const site = "https://cerebro.exemplo";
+    expect(ligarFerramenta("claude-code", site).comando).toBe(
+      'claude mcp add --scope user --transport http cerebro https://cerebro.exemplo/api/mcp --header "Authorization: Bearer SEU_TOKEN"',
+    );
+    expect(ligarFerramenta("claude-app", site).comando).toBe(
+      "https://cerebro.exemplo/api/mcp/SEU_TOKEN",
+    );
+    expect(ligarFerramenta("codex", site).comando).toBe(
+      'setx CEREBRO_TOKEN "SEU_TOKEN"\ncodex mcp add cerebro --url https://cerebro.exemplo/api/mcp --bearer-token-env-var CEREBRO_TOKEN',
+    );
+    expect(ligarFerramenta("gemini", site).comando).toBe(
+      'gemini mcp add -s user --transport http --header "Authorization: Bearer SEU_TOKEN" cerebro https://cerebro.exemplo/api/mcp',
+    );
+    const comandos = (["claude-code", "claude-app", "codex", "gemini"] as const).map(
+      (f) => ligarFerramenta(f, site).comando,
+    );
+    expect(new Set(comandos).size).toBe(4);
+    for (const f of ["claude-code", "claude-app", "codex", "gemini"] as const)
+      expect(ligarFerramenta(f, site).como.length).toBeGreaterThan(20);
   });
   it("precisaTrocar com 85% ou mais", () => {
     const agora = Date.parse("2026-11-24T12:00:00Z");
@@ -131,8 +153,16 @@ describe("ProjetosPanel", () => {
     // limite alto: a troca já abre no Codex
     expect(screen.getByRole("tab", { name: "Codex" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText(comandoContinuar("codex", "crm-x"))).toBeInTheDocument();
+    expect(screen.getByText(/codex mcp add cerebro/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "Gemini" }));
     expect(screen.getByText(comandoContinuar("gemini", "crm-x"))).toBeInTheDocument();
+    // trocar de aba troca o passo de ligar: não é o mesmo texto em todas
+    expect(screen.getByText(/gemini mcp add/)).toBeInTheDocument();
+    expect(screen.queryByText(/codex mcp add cerebro/)).toBeNull();
+    // outro Claude (site, app ou outra conta) entra por conector com o endereço do cérebro
+    fireEvent.click(screen.getByRole("tab", { name: "Claude (site/app)" }));
+    expect(screen.getByText(/\/api\/mcp\/SEU_TOKEN$/)).toBeInTheDocument();
+    expect(screen.getByText(/Conectores/)).toBeInTheDocument();
   });
 
   it("limite lido há mais de 5 h não avisa e a troca abre no Claude Code", async () => {
