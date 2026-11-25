@@ -3,9 +3,10 @@ import { agentSnapshot, saveAgentSnapshot, serverAgentSnapshot, subscribeAgents 
 import { agentIsWorking, isTaskActive, type BrainTask } from "@/lib/brain-routing";
 import { TaskMonitor } from "./TaskMonitor";
 import { AgenciaLayer } from "./AgenciaLayer";
-import { estadoAgencia } from "@/lib/cerebro/agencia";
+import { estadoAgencia, rotuloOrquestrador } from "@/lib/cerebro/agencia";
+import { vistaPadrao } from "./brain-camera";
 import divisoes from "@/lib/cerebro/divisoes.json";
-import { useAtividade, useProvedores } from "@/lib/cerebro/use-atividade";
+import { useAtividade, useProvedores, useSessao } from "@/lib/cerebro/use-atividade";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { FX } from "./Panel";
@@ -31,6 +32,8 @@ export function GraphPanel() {
   const [sel, setSel] = useState<N | null>(null);
   const [hidden, setHidden] = useState<Set<number>>(new Set());
   const svg = useRef<SVGSVGElement>(null);
+  // Quantas entradas de IA existem agora: a vista padrão enquadra a coluna delas, o cérebro, a agência e as skills.
+  const nAgentesRef = useRef(DEFAULT_AGENTS.length);
   useEffect(() => {
     const el = svg.current;
     if (!el) return;
@@ -39,8 +42,7 @@ export function GraphPanel() {
       const width = el.clientWidth;
       if (!width || width === previousWidth) return;
       previousWidth = width;
-      const k = Math.min(1.3, (width - 24) / 680);
-      setView({ x: width < 680 ? 50 * k : 40, y: 30, k });
+      setView(vistaPadrao(width, el.clientHeight, nAgentesRef.current));
     });
     observer.observe(el);
     return () => observer.disconnect();
@@ -52,7 +54,9 @@ export function GraphPanel() {
   const timers = useRef<number[]>([]);
   const agentesLocais = useSyncExternalStore(subscribeAgents, agentSnapshot, serverAgentSnapshot);
   // IAs cadastradas no cofre do núcleo (com chave cifrada no servidor) também viram entradas do cérebro.
-  const { data: cofre = [] } = useProvedores();
+  const sessao = useSessao();
+  const provedores = useProvedores();
+  const cofre = provedores.data ?? [];
   const agents = [...agentesLocais, ...cofre.filter(p => !agentesLocais.some(a => a.id === `cofre:${p.id}`)).map(p => ({ id: `cofre:${p.id}`, name: p.nome, vendor: p.fornecedor, c: p.cor, model: `${p.fornecedor}/${p.modelo}`, kind: "api" as const }))];
   const [agent, setAgent] = useState<AgentId>("claude-code");
   const [log, setLog] = useState<string[]>([]);
@@ -67,11 +71,13 @@ export function GraphPanel() {
   // Agência GD3 e skills de trabalho: acendem pelas delegações recentes do orquestrador.
   const estado = estadoAgencia(atividade, divisoes);
   const orquestrador = cofre.find(p => p.papel === "orquestrador");
+  const rotuloNucleo = rotuloOrquestrador({ carregando: sessao.isLoading || provedores.isLoading, logado: !!sessao.data?.logado, nome: orquestrador?.nome, ativo: estado.orquestradorAtivo });
   const busyMap = Object.fromEntries(agents.map(a => [a.id, agentIsWorking(tasks, a.id) || ativosNoNucleo.includes(a.id)]));
   const activeTasks = tasks.filter(isTaskActive);
   const runningSkills = SKILLS.filter(s => activeTasks.some(t => t.phase === "running" && t.skillId === s.id));
   const [answers, setAnswers] = useState<Record<string, { ok: boolean; text: string }>>({});
   const saveAgents = (lista: Agent[]) => saveAgentSnapshot(lista.filter(a => !a.id.startsWith("cofre:")));
+  nAgentesRef.current = agents.length;
   const ag = agents.find(a => a.id === agent) ?? agents[0] ?? DEFAULT_AGENTS[0]!;
   const online = new Set(agents.filter(a => a.model).map(a => a.id));
   // Fire a skill: light each region of its path in order and launch a burst of synaptic pulses there.
@@ -169,7 +175,7 @@ export function GraphPanel() {
       <div className="absolute right-3 top-3 z-10 flex gap-1 border border-fx-800 bg-fx-950 p-1">
         {([{ id: "rotate", label: "Girar cérebro", Icon: Rotate3D }, { id: "brain", label: "Mover cérebro", Icon: Move }, { id: "pan", label: "Mover tela", Icon: Hand }] as const).map(({ id, label, Icon }) => <Button key={id} size="icon" variant="ghost" title={label} aria-label={label} aria-pressed={movement === id} onClick={() => setMovement(id)} className={movement === id ? "bg-fx-850 text-fx-cyan" : "text-fx-300"}><Icon /></Button>)}
         <Button size="icon" variant="ghost" title="Rotação automática 360°" aria-label="Rotação automática 360°" aria-pressed={spin} onClick={() => setSpin(s => !s)} className="text-fx-300"><RotateCcw /></Button>
-        <Button size="icon" variant="ghost" title="Restaurar vista e posições" aria-label="Restaurar vista e posições" onClick={() => { rot.current = { yaw: 0, pitch: 0 }; setBrainOffset({ x: 0, y: 0 }); setPortOffsets({}); const width = svg.current?.clientWidth ?? 900; setView({ x: width < 680 ? 50 * Math.min(1.3, (width - 24) / 680) : 40, y: 30, k: Math.min(1.3, (width - 24) / 680) }); }} className="text-fx-300"><Scan /></Button>
+        <Button size="icon" variant="ghost" title="Restaurar vista e posições" aria-label="Restaurar vista e posições" onClick={() => { rot.current = { yaw: 0, pitch: 0 }; setBrainOffset({ x: 0, y: 0 }); setPortOffsets({}); setView(vistaPadrao(svg.current?.clientWidth ?? 900, svg.current?.clientHeight ?? 600, agents.length)); }} className="text-fx-300"><Scan /></Button>
       </div>
       <svg ref={svg} aria-label="Cérebro e entradas de IA" className="relative h-full w-full cursor-grab touch-none select-none" onPointerDown={e => { svg.current?.setPointerCapture(e.pointerId); const w = toWorld(e); const onBrain = !e.shiftKey && ((w.x - brainOffset.x - 5) / 230) ** 2 + ((w.y - brainOffset.y - 20) / 210) ** 2 < 1;
           if (movement === "brain" && onBrain) { startBrainMove(e); return; }
@@ -230,7 +236,8 @@ export function GraphPanel() {
                 <circle r={26} fill={fx(ag.c)} fillOpacity={.15} filter="url(#soft)" />
                 <circle r={19} fill="none" stroke={fx(ag.c)} strokeWidth={1} strokeDasharray="3 4" className="core-spin" />
                 <circle r={15} fill="none" stroke={fx("paper")} strokeOpacity={.6} strokeWidth={.8} strokeDasharray="10 5" className="core-spin-rev" />
-                <text textAnchor="middle" y={-30} fontSize={8} fontWeight={600} letterSpacing={1.2} fontFamily="var(--font-sans)" fill={fx(ag.c)}>{`ORQUESTRADOR · ${orquestrador ? orquestrador.nome : "sem IA no cofre"}${estado.orquestradorAtivo ? " · delegando" : ""}`}</text>
+                {estado.orquestradorAtivo && <circle data-core-pulse r={23} fill="none" stroke={fx(ag.c)} strokeWidth={1.5} className="core-pulse" />}
+                <text textAnchor="middle" y={-30} fontSize={8} fontWeight={600} letterSpacing={1.2} fontFamily="var(--font-sans)" fill={fx(ag.c)}>{rotuloNucleo}</text>
                 <text textAnchor="middle" dy={3} fontSize={7} fontWeight={700} fontFamily="var(--font-mono)" fill={fx("black")}>IA</text></g>}
               {n.hub && n.id !== 0 && <g><text textAnchor="middle" y={-11} fontSize={9.5} fontWeight={600} paintOrder="stroke" stroke={fx("black")} strokeWidth={3} fontFamily="var(--font-sans)" fill={color(n)}>{n.label}</text></g>}
             </g>

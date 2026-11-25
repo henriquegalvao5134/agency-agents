@@ -229,6 +229,9 @@
 .wire-flow { animation: dash-flow 0.8s linear infinite; }
 .core-spin { animation: core-spin 9s linear infinite; transform-box: fill-box; transform-origin: center; }
 .core-spin-rev { animation: core-spin 6s linear infinite reverse; transform-box: fill-box; transform-origin: center; }
+/* Núcleo pulsando enquanto o orquestrador delega (últimos 2 min). Sem animação, o anel fica parado e visível. */
+@keyframes core-pulse { 0% { transform: scale(1); opacity: .9; } 100% { transform: scale(1.8); opacity: 0; } }
+.core-pulse { animation: core-pulse 1.4s ease-out infinite; transform-box: fill-box; transform-origin: center; }
 
 .workspace-rail {
   display: flex;
@@ -270,5 +273,5 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .wire-flow, .core-spin, .core-spin-rev { animation: none; }
+  .wire-flow, .core-spin, .core-spin-rev, .core-pulse { animation: none; }
 }
