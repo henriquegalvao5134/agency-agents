@@ -48,7 +48,18 @@ No painel, seção **Onde eu parei** (entre com a senha do painel): cada projeto
 e o botão **Continuar em outra IA**, que dá o texto pronto para colar no Claude Code, no Codex ou no Gemini.
 Quando o limite do Claude passa de 85%, a seção avisa. Para o Codex e o Gemini enxergarem a mesma memória, ligue o MCP neles:
 - Codex: ver `codex/README.md`.
-- Gemini CLI: copie `gemini/settings.exemplo.json` para `~/.gemini/settings.json`.
+- Gemini CLI (escolha um dos dois jeitos):
+  - Pelo terminal (PowerShell, Mac ou Linux). As aspas simples fazem o token ficar fora do arquivo: o Gemini lê
+    `CEREBRO_TOKEN` na hora de usar.
+    ```bash
+    gemini mcp add -s user --transport http --header 'Authorization: Bearer $CEREBRO_TOKEN' cerebro https://henriquegalvao5134-agency-agents-segundo-cerebro.leandrotecnico02.workers.dev/api/mcp
+    ```
+    O comando acrescenta o cérebro ao `~/.gemini/settings.json` sem apagar o que já está lá.
+  - À mão: **não substitua** um `~/.gemini/settings.json` que já existe (no Windows:
+    `C:\Users\<você>\.gemini\settings.json`), porque você perderia as suas configurações.
+    Abra o arquivo e junte só o bloco `"cerebro"` de `gemini/settings.exemplo.json` dentro de `"mcpServers"`
+    (se ainda não houver `"mcpServers"`, acrescente ele inteiro, com vírgula depois do item anterior).
+    Só copie o exemplo inteiro se o arquivo ainda não existir.
 Defina a variável de ambiente `CEREBRO_TOKEN` (o mesmo segredo do Worker) no seu computador; nenhum token vai para arquivos.
 
 ## Limites conhecidos
