@@ -1,0 +1,20 @@
+{
+  "academic": 6,
+  "design": 10,
+  "engineering": 66,
+  "finance": 5,
+  "game-development": 21,
+  "gis": 13,
+  "healthcare": 3,
+  "marketing": 37,
+  "paid-media": 7,
+  "product": 6,
+  "project-management": 7,
+  "research": 1,
+  "sales": 9,
+  "security": 12,
+  "spatial-computing": 6,
+  "specialized": 59,
+  "support": 6,
+  "testing": 9
+}

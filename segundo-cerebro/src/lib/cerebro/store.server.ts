@@ -189,15 +189,27 @@ export function resumirAtividade(eventos: EventoSalvo[], agora = new Date()): At
     }
   }
   const delegacoes = eventos
-    .filter(e => e.tipo === "delegacao" && agora.getTime() - new Date(e.criado_em).getTime() < 15 * 60_000)
+    .filter(
+      (e) =>
+        e.tipo === "delegacao" && agora.getTime() - new Date(e.criado_em).getTime() < 15 * 60_000,
+    )
     .slice(0, 10)
-    .map(e => ({
+    .map((e) => ({
       criado_em: e.criado_em,
       ferramenta: e.ferramenta,
       area: typeof e.meta["area"] === "string" ? e.meta["area"] : "",
-      agentes: Array.isArray(e.meta["agentes"]) ? e.meta["agentes"].filter((x): x is string => typeof x === "string") : [],
+      agentes: Array.isArray(e.meta["agentes"])
+        ? e.meta["agentes"].filter((x): x is string => typeof x === "string")
+        : [],
+      // Mesma ordem de agentes: um nome que não seja texto vira "" (o painel usa o nome derivado do id).
+      nomes: Array.isArray(e.meta["nomes"])
+        ? e.meta["nomes"].map((x: unknown) => (typeof x === "string" ? x : ""))
+        : [],
     }));
-  const salvouAgora = eventos.some(e => e.tipo === "checkpoint" && agora.getTime() - new Date(e.criado_em).getTime() < 2 * 60_000);
+  const salvouAgora = eventos.some(
+    (e) =>
+      e.tipo === "checkpoint" && agora.getTime() - new Date(e.criado_em).getTime() < 2 * 60_000,
+  );
   return {
     configurado: true,
     delegacoes,
