@@ -1,6 +1,8 @@
 <!-- LOVABLE:BEGIN -->
 # AutoGTEC Segundo Cérebro — regras do projeto
 
+**Antes de qualquer trabalho, leia `HANDOFF.md` (estado atual, decisões, próximos passos) e a ficha `segundo-cerebro` no MCP `cerebro`.**
+
 O projeto saiu da Lovable (24/11/2026): não há gateway de IA, banco nem segredos da Lovable.
 Hospedagem: Cloudflare Worker `henriquegalvao5134-agency-agents-segundo-cerebro` (deploy automático pelo `main`).
 
@@ -11,7 +13,7 @@ Hospedagem: Cloudflare Worker `henriquegalvao5134-agency-agents-segundo-cerebro`
 - Catálogo de agentes: rode `node scripts/gerar-catalogo.mjs` quando agentes do repositório mudarem.
 - Integração do Claude Code: integracoes/ (ganchos, barra de status, skill salvar-no-cerebro).
 
-- Brain regions, note-group→region mapping and skill→region paths live in src/components/dash/brain.ts; panels read from it so the map stays documented in one place.
+- Brain regions, department→region mapping (agents inside the lobes) and skill→region paths live in src/components/dash/brain.ts; panels read from it so the map stays documented in one place.
 - Brain delegation uses one validated native tool call followed by one executor call; task-scoped lifecycle events drive visual activity so concurrent tasks cannot clear each other's status.
 - Graph layout uses independent world-space offsets for AI ports and the brain; camera pan and rotation remain separate so rearranging cards never changes neural geometry or task state.
 - News uses fixed public RSS sources and the official daily exchange-rate source through a read-only server function; expose source failures and reference dates rather than inventing headlines or real-time prices.
